@@ -1,6 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from fpdf import FPDF
 import io
 import json
@@ -10,8 +10,12 @@ st.set_page_config(page_title="Arcano AI Studio", page_icon="🏢", layout="wide
 
 st.title("🏢 Arcano AI Studio")
 st.subheader("Central de Inteligencia Inmobiliaria - Versión Pro (Marca Blanca)")
-st.markdown("Genera kits de venta personalizados al instante: Mensaje de WhatsApp, Collage y Ficha PDF Estructurada.")
+st.markdown("Genera kits de venta personalizados: Mensaje de WhatsApp, Collage con Textos y Ficha PDF.")
 st.markdown("---")
+
+# Inicializar la "Memoria" de la aplicación para que no se borre al descargar
+if 'resultados' not in st.session_state:
+    st.session_state.resultados = None
 
 st.sidebar.header("⚙️ Configuración del Motor")
 api_key = st.sidebar.text_input("API Key de Gemini:", type="password")
@@ -19,32 +23,57 @@ api_key = st.sidebar.text_input("API Key de Gemini:", type="password")
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.write("### 👤 1. Configuración de Marca Blanca")
+    st.write("### 🏠 1. Tipo de Inmueble")
+    tipo_propiedad = st.radio("Selecciona lo que vamos a comercializar:", ["Casa Habitación", "Terreno"], horizontal=True)
+    
+    st.write("### 👤 2. Marca Blanca")
     inmobiliaria = st.text_input("Nombre de la Inmobiliaria:", value="Arconte Bienes Raíces")
     asesor = st.text_input("Nombre del Asesor:", value="Javier Enciso")
     contacto = st.text_input("WhatsApp de Contacto (Ej: 7711234567):")
     
-    st.write("### 📝 2. Datos del Inmueble")
+    st.write("### 📝 3. Datos del Inmueble")
     titulo_propiedad = st.text_input("Título Comercial (Ej: Casa Moderna en Forjadores):")
     precio_inmueble = st.text_input("Precio de Operación (Ej: $2,700,000 MXN):")
     descripcion = st.text_area("Descripción cruda (Metros, distribución, esquema legal, etc.):", height=120)
     
-    st.write("### 📸 3. Expediente Fotográfico")
+    st.write("### 📸 4. Expediente Fotográfico")
     foto1 = st.file_uploader("Foto 1: Fachada Principal", type=['jpg', 'jpeg', 'png'])
     foto2 = st.file_uploader("Foto 2: Estancia / Interiores", type=['jpg', 'jpeg', 'png'])
     foto3 = st.file_uploader("Foto 3: Recámaras / Privado", type=['jpg', 'jpeg', 'png'])
     foto4 = st.file_uploader("Foto 4: Amenidades / Detalles", type=['jpg', 'jpeg', 'png'])
 
-def crear_collage(img1, img2, img3, img4):
+def crear_collage(img1, img2, img3, img4, tipo):
+    # Lienzo principal
     lienzo = Image.new('RGB', (1080, 1080), color=(26, 43, 76)) 
     def preparar(f): return Image.open(f).resize((540, 540))
     lienzo.paste(preparar(img1), (0, 0))
     lienzo.paste(preparar(img2), (540, 0))
     lienzo.paste(preparar(img3), (0, 540))
     lienzo.paste(preparar(img4), (540, 540))
-    dibujo = ImageDraw.Draw(lienzo)
-    dibujo.rectangle([0, 950, 1080, 1080], fill=(197, 168, 128)) 
-    return lienzo
+    
+    # Dibujar Banners
+    # Usamos RGBA para hacer el cinturón central semitransparente
+    capa_dibujo = Image.new('RGBA', (1080, 1080), (255, 255, 255, 0))
+    dibujo = ImageDraw.Draw(capa_dibujo)
+    
+    # Cinturón central oscuro
+    dibujo.rectangle([0, 460, 1080, 620], fill=(26, 43, 76, 220)) 
+    # Banner inferior dorado
+    dibujo.rectangle([0, 980, 1080, 1080], fill=(197, 168, 128, 255)) 
+    
+    # Intentar cargar una fuente grande, si no hay, usar predeterminada
+    try:
+        fuente_grande = ImageFont.truetype("DejaVuSans-Bold.ttf", 65)
+    except:
+        fuente_grande = ImageFont.load_default()
+        
+    texto_oferta = f"¡{tipo.upper()} EN VENTA!"
+    # Centrar texto aproximado
+    dibujo.text((540, 540), texto_oferta, fill=(255, 255, 255, 255), font=fuente_grande, anchor="mm")
+    
+    # Combinar el lienzo con la capa de dibujo
+    lienzo = Image.alpha_composite(lienzo.convert('RGBA'), capa_dibujo)
+    return lienzo.convert('RGB')
 
 def procesar_imagen(file_obj):
     if not file_obj: return None
@@ -58,7 +87,7 @@ def procesar_imagen(file_obj):
     temp.seek(0)
     return temp
 
-# NUEVO MOTOR PDF DE ARQUITECTURA ESTRUCTURADA
+# MOTOR PDF CON DISEÑO ESTÉTICO EXACTO
 def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_cont, f1, f2, f3, f4):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
@@ -66,36 +95,59 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     # ---------------- PÁGINA 1 ----------------
     pdf.add_page()
     
-    # Encabezado Comercial
-    pdf.set_font("Helvetica", 'B', 22)
-    pdf.set_text_color(26, 43, 76)
-    pdf.cell(100, 8, name_inmo.upper()[:25], ln=0)
+    # Separar el nombre de la inmobiliaria para dar diseño (Ej: "ARCONTE" grande, "Bienes Raíces" chico)
+    partes = name_inmo.split(" ", 1)
+    palabra1 = partes[0]
+    palabra2 = partes[1] if len(partes)>1 else ""
     
+    pdf.set_xy(15, 8)
+    pdf.set_font("Helvetica", 'B', 24)
+    pdf.set_text_color(26, 43, 76)
+    pdf.cell(90, 8, palabra1.upper(), ln=1)
+    
+    if palabra2:
+        pdf.set_xy(15, 16)
+        pdf.set_font("Helvetica", 'B', 9)
+        pdf.set_text_color(197, 168, 128)
+        pdf.cell(90, 4, palabra2.upper(), ln=1)
+    
+    # Encabezado Derecho
+    pdf.set_xy(100, 10)
     pdf.set_font("Helvetica", 'B', 10)
     pdf.set_text_color(120, 120, 120)
-    pdf.cell(90, 8, "FICHA TÉCNICA EJECUTIVA", ln=1, align='R')
+    pdf.cell(95, 5, "FICHA TÉCNICA EJECUTIVA", ln=1, align='R')
     
-    # Línea Divisoria
+    # Status DISPONIBLE en verde vibrante
+    pdf.set_xy(100, 15)
+    pdf.set_font("Helvetica", 'B', 9)
+    pdf.set_text_color(46, 125, 50)
+    pdf.cell(95, 5, "● DISPONIBLE", ln=1, align='R')
+    
+    # Línea Divisoria Superior
     pdf.set_draw_color(26, 43, 76)
     pdf.set_line_width(0.8)
-    pdf.line(15, 22, 195, 22)
+    pdf.line(15, 24, 195, 24)
     
-    # Título y Precio
+    # Título Dinámico (Ajusta tamaño si es muy largo) y Precio Fijo
     pdf.set_xy(15, 28)
-    pdf.set_font("Helvetica", 'B', 15)
-    pdf.set_text_color(50, 50, 50)
-    pdf.cell(120, 8, titulo.upper()[:45], ln=0)
-    
-    pdf.set_font("Helvetica", 'B', 16)
+    pdf.set_font("Helvetica", 'B', 18)
     pdf.set_text_color(26, 43, 76)
-    pdf.cell(60, 8, precio, ln=1, align='R')
+    pdf.cell(180, 8, precio, ln=0, align='R') # Precio a la derecha
     
-    pdf.set_xy(15, 36)
+    pdf.set_xy(15, 28)
+    pdf.set_text_color(50, 50, 50)
+    longitud_titulo = len(titulo)
+    if longitud_titulo < 35: pdf.set_font("Helvetica", 'B', 16)
+    elif longitud_titulo < 55: pdf.set_font("Helvetica", 'B', 13)
+    else: pdf.set_font("Helvetica", 'B', 11)
+    pdf.multi_cell(120, 7, titulo.upper()) # Título a la izquierda, puede bajar de renglón
+    
+    # Ubicación debajo del título
+    pdf.set_xy(15, pdf.get_y() + 2)
     pdf.set_font("Helvetica", '', 10)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(180, 5, datos.get('ubicacion', '').encode('latin-1', 'ignore').decode('latin-1'), ln=1)
     
-    # Función de ayuda para Títulos de Sección
     def titulo_seccion(texto, y_pos):
         pdf.set_xy(15, y_pos)
         pdf.set_fill_color(197, 168, 128) 
@@ -106,8 +158,8 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         pdf.cell(150, 6, texto.upper(), ln=1)
         return y_pos + 8
         
-    # SECCIÓN: DATOS TÉCNICOS (Tabla)
-    y = titulo_seccion("Datos Técnicos del Inmueble", 48)
+    # DATOS TÉCNICOS
+    y = titulo_seccion("Datos Técnicos del Inmueble", pdf.get_y() + 8)
     
     pdf.set_fill_color(26, 43, 76)
     pdf.set_text_color(255, 255, 255)
@@ -133,47 +185,42 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
 
     fila_tabla("Ubicación", datos.get('ubicacion', 'No especificado'), False)
     fila_tabla("Superficie de Terreno", datos.get('terreno', 'No especificado'), True)
-    fila_tabla("Superficie de Construcción", datos.get('construccion', 'No especificado'), False)
-    fila_tabla("Niveles Construidos", datos.get('niveles', 'No especificado'), True)
-    fila_tabla("Esquema Legal", "Propiedad privada, libre de gravamen.", False)
-    fila_tabla("Modalidad de Venta", "Trato Directo / Operación Ejecutiva", True)
+    fila_tabla("Superficie de Construcción", datos.get('construccion', 'No aplica'), False)
+    fila_tabla("Niveles", datos.get('niveles', 'No especificado'), True)
+    fila_tabla("Esquema Legal", "Propiedad privada, lista para escriturar.", False)
     
-    # SECCIÓN: DESCRIPCIÓN
+    # DESCRIPCIÓN
     y = titulo_seccion("Descripción General", y + 8)
     pdf.set_xy(15, y)
     pdf.set_font("Helvetica", '', 10)
     pdf.set_text_color(45, 55, 72)
     desc_clean = datos.get('descripcion_pdf', '').encode('latin-1', 'ignore').decode('latin-1')
-    pdf.multi_cell(180, 5, desc_clean)
+    pdf.multi_cell(180, 5.5, desc_clean)
     
-    # SECCIÓN: DISTRIBUCIÓN DE ESPACIOS (Dos Columnas)
-    y = titulo_seccion("Distribución de Espacios", pdf.get_y() + 8)
+    # DISTRIBUCIÓN
+    y = titulo_seccion("Distribución / Amenidades", pdf.get_y() + 8)
     
-    # Columna Planta Baja
     pdf.set_xy(15, y)
     pdf.set_font("Helvetica", 'B', 10)
     pdf.set_text_color(26, 43, 76)
-    pdf.cell(85, 6, "Planta Baja", ln=1)
+    pdf.cell(85, 6, "Zonas Principales", ln=1)
     pdf.set_font("Helvetica", '', 9)
     pdf.set_text_color(70, 85, 104)
     y_col1 = pdf.get_y()
     for item in datos.get('planta_baja', []):
         pdf.set_x(15)
         pdf.multi_cell(85, 4.5, f"• {item.encode('latin-1', 'ignore').decode('latin-1')}")
-    y_final_col1 = pdf.get_y()
     
-    # Columna Planta Alta
     pdf.set_xy(110, y)
     pdf.set_font("Helvetica", 'B', 10)
     pdf.set_text_color(26, 43, 76)
-    pdf.cell(85, 6, "Planta Alta & Amenidades", ln=1)
+    pdf.cell(85, 6, "Extras / Privados", ln=1)
     pdf.set_font("Helvetica", '', 9)
     pdf.set_text_color(70, 85, 104)
     pdf.set_y(y_col1)
     for item in datos.get('planta_alta', []):
         pdf.set_x(110)
         pdf.multi_cell(85, 4.5, f"• {item.encode('latin-1', 'ignore').decode('latin-1')}")
-    y_final_col2 = pdf.get_y()
     
     # Pie de página 1
     pdf.set_xy(15, 280)
@@ -190,37 +237,35 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_text_color(100, 100, 100)
     pdf.cell(180, 5, "Este expediente vincula automáticamente las fotografías validadas dentro del catálogo maestro.", ln=1)
     
-    # Cuadrícula 2x2
+    # Cuadrícula Visual
     y_img = 40
     try:
-        # Foto 1 y 2
         if f1: pdf.image(procesar_imagen(f1), x=20, y=y_img, w=80, h=60)
         if f2: pdf.image(procesar_imagen(f2), x=110, y=y_img, w=80, h=60)
         pdf.set_font("Helvetica", 'B', 9)
         pdf.set_text_color(26, 43, 76)
         pdf.set_xy(20, y_img + 62)
-        pdf.cell(80, 5, "Fachada Principal / Acceso", align='C')
+        pdf.cell(80, 5, "Vista Principal", align='C')
         pdf.set_xy(110, y_img + 62)
-        pdf.cell(80, 5, "Estancia / Interiores", align='C')
+        pdf.cell(80, 5, "Interiores / Terreno", align='C')
         
-        # Foto 3 y 4
         y_img = 115
         if f3: pdf.image(procesar_imagen(f3), x=20, y=y_img, w=80, h=60)
         if f4: pdf.image(procesar_imagen(f4), x=110, y=y_img, w=80, h=60)
         pdf.set_xy(20, y_img + 62)
-        pdf.cell(80, 5, "Área Privada / Recámaras", align='C')
+        pdf.cell(80, 5, "Área Privada", align='C')
         pdf.set_xy(110, y_img + 62)
-        pdf.cell(80, 5, "Acabados / Amenidades", align='C')
+        pdf.cell(80, 5, "Detalles Adicionales", align='C')
     except Exception as e:
         pass
         
-    # Caja Call to Action (Abajo)
+    # Call to Action
     pdf.set_fill_color(26, 43, 76)
     pdf.rect(15, 230, 180, 30, 'F')
     pdf.set_font("Helvetica", 'B', 12)
     pdf.set_text_color(197, 168, 128)
     pdf.set_xy(15, 235)
-    pdf.cell(180, 8, "¿LISTO PARA COORDINAR UNA VISITA?", align='C', ln=1)
+    pdf.cell(180, 8, "¿LISTO PARA RECIBIR MÁS INFORMACIÓN?", align='C', ln=1)
     pdf.set_font("Helvetica", '', 10)
     pdf.set_text_color(255, 255, 255)
     pdf.set_xy(15, 245)
@@ -228,7 +273,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_xy(15, 250)
     pdf.cell(180, 6, f"Línea Directa / WhatsApp: {num_cont}", align='C', ln=1)
 
-    # Pie de página 2
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
     pdf.set_text_color(150, 150, 150)
@@ -237,70 +281,73 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     return bytes(pdf.output())
 
 with col2:
-    st.write("### 🪐 Materiales Listos para Descarga")
+    st.write("### 🪐 Centro de Procesamiento")
     
-    if st.button("🚀 Procesar Estructura Inteligente", use_container_width=True):
+    if st.button("🚀 Generar Todo el Material", use_container_width=True):
         if not api_key: st.error("⚠️ Ingresa tu API Key maestra.")
         elif not descripcion or not titulo_propiedad: st.warning("⚠️ Faltan datos del inmueble.")
-        elif not (foto1 and foto2 and foto3 and foto4): st.warning("⚠️ Faltan fotografías.")
+        elif not (foto1 and foto2 and foto3 and foto4): st.warning("⚠️ Sube las 4 fotografías.")
         else:
             try:
                 genai.configure(api_key=api_key)
                 modelo = genai.GenerativeModel('gemini-2.5-flash')
                 
-                with st.spinner('Extrayendo datos arquitectónicos y dibujando cuadrículas PDF...'):
-                    # Prompt especializado para JSON
+                with st.spinner(f'Analizando {tipo_propiedad} y ensamblando materiales...'):
                     prompt = f"""
-                    Analiza esta descripción y extrae los datos solicitados. Devuelve ÚNICAMENTE un formato JSON válido, sin texto extra, con esta estructura exacta:
+                    Analiza esta descripción de {tipo_propiedad} y extrae los datos. Devuelve ÚNICAMENTE JSON válido:
                     {{
-                        "whatsapp": "Mensaje persuasivo con emojis para vender",
-                        "ubicacion": "Ubicación corta",
-                        "terreno": "Superficie de terreno",
-                        "construccion": "Superficie de construcción",
-                        "niveles": "Número de niveles",
-                        "descripcion_pdf": "Párrafo corporativo y formal sobre ventajas y plusvalía (máximo 80 palabras)",
-                        "planta_baja": ["Elemento 1", "Elemento 2", "Elemento 3"],
-                        "planta_alta": ["Elemento 1", "Elemento 2", "Elemento 3"]
+                        "whatsapp": "Mensaje altamente persuasivo con emojis diseñado para vender este {tipo_propiedad}",
+                        "ubicacion": "Ciudad o colonia corta",
+                        "terreno": "Superficie de terreno con m2",
+                        "construccion": "Superficie de construcción (Pon 'N/A' si es terreno puro)",
+                        "niveles": "Número de niveles (Pon 'N/A' si es terreno puro)",
+                        "descripcion_pdf": "Párrafo corporativo sobre ventajas (máximo 80 palabras)",
+                        "planta_baja": ["Punto clave 1", "Punto clave 2", "Punto clave 3"],
+                        "planta_alta": ["Extra 1", "Extra 2", "Extra 3"]
                     }}
                     
-                    Propiedad: {titulo_propiedad} a {precio_inmueble}
+                    Inmueble: {titulo_propiedad} a {precio_inmueble}
                     Descripción: {descripcion}
                     """
                     
                     respuesta = modelo.generate_content(prompt)
-                    
-                    # Corrección segura a prueba de GitHub
                     marca_codigo = "`" * 3
                     res_texto = respuesta.text.replace(marca_codigo + "json", "").replace(marca_codigo, "").strip()
+                    datos_json = json.loads(res_texto)
                     
-                    try:
-                        datos_json = json.loads(res_texto)
-                    except:
-                        st.error("Error de la IA al formatear datos. Intenta de nuevo.")
-                        st.stop()
-                    
-                    collage_final = crear_collage(foto1, foto2, foto3, foto4)
+                    collage_final = crear_collage(foto1, foto2, foto3, foto4, tipo_propiedad)
                     pdf_final_bytes = generar_pdf_estructurado(
                         titulo_propiedad, precio_inmueble, datos_json, 
                         inmobiliaria, asesor, contacto, 
                         foto1, foto2, foto3, foto4
                     )
-                
-                st.success("¡Ficha Estructurada Generada con Éxito!")
-                
-                st.download_button(
-                    label="📄 Descargar Ficha Técnica PDF (Diseño Arconte)",
-                    data=pdf_final_bytes,
-                    file_name=f"Ficha_Arconte_{titulo_propiedad.replace(' ', '_')}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-                
-                st.markdown("#### 📲 Mensaje Personalizado de WhatsApp:")
-                st.info(datos_json.get("whatsapp", ""))
-                
-                st.markdown("#### 📸 Visual para Estados:")
-                st.image(collage_final, use_container_width=True)
-                
+                    
+                    # Guardar en la Memoria del navegador
+                    st.session_state.resultados = {
+                        "pdf": pdf_final_bytes,
+                        "whatsapp": datos_json.get("whatsapp", ""),
+                        "collage": collage_final,
+                        "titulo": titulo_propiedad
+                    }
             except Exception as e:
-                st.error(f"Error en el motor gráfico: {e}")
+                st.error(f"Error en el motor: {e}")
+
+    # Mostrar Resultados desde la Memoria (así no se borran al dar clic en descargar)
+    if st.session_state.resultados:
+        res = st.session_state.resultados
+        
+        st.success("¡Materiales Generados con Éxito!")
+        
+        st.download_button(
+            label="📄 DESCARGAR FICHA TÉCNICA (PDF)",
+            data=res["pdf"],
+            file_name=f"Ficha_{res['titulo'].replace(' ', '_')}.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
+        
+        st.markdown("#### 💬 Copy WhatsApp Listo:")
+        st.info(res["whatsapp"])
+        
+        st.markdown("#### 📱 Arte para Estados (WhatsApp/Instagram):")
+        st.image(res["collage"], use_container_width=True)
