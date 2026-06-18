@@ -75,7 +75,6 @@ def generar_pdf(titulo, precio, copy_ia, name_inmo, name_asesor, num_cont, f1, f
     pdf.ln(10)
     
     # Reseña de la Propiedad redactada por la IA
-    # (Filtramos emojis con codificación segura latin-1 para evitar caídas del PDF)
     texto_seguro = copy_ia.encode('latin-1', 'ignore').decode('latin-1')
     pdf.set_font("Helvetica", '', 11)
     pdf.set_text_color(60, 60, 60)
@@ -99,14 +98,13 @@ def generar_pdf(titulo, precio, copy_ia, name_inmo, name_asesor, num_cont, f1, f
     pdf.cell(0, 10, "GALERÍA REGISTRADA DEL INMUEBLE", ln=True, align='C')
     pdf.ln(10)
     
-    # Cuadrícula matemática para incrustar las fotos en formato 2x2 en la hoja A4
+    # Cuadrícula matemática para incrustar las fotos en formato 2x2
     try:
         if f1: pdf.image(Image.open(f1), x=15, y=35, w=85, h=85)
         if f2: pdf.image(Image.open(f2), x=110, y=35, w=85, h=85)
         if f3: pdf.image(Image.open(f3), x=15, y=135, w=85, h=85)
         if f4: pdf.image(Image.open(f4), x=110, y=135, w=85, h=85)
     except Exception as e:
-        # En caso de error de formato, el sistema continúa para no romper la descarga
         pass
         
     # Pie de página de la Galería
@@ -115,7 +113,8 @@ def generar_pdf(titulo, precio, copy_ia, name_inmo, name_asesor, num_cont, f1, f
     pdf.set_text_color(150, 150, 150)
     pdf.cell(0, 10, f"Este catálogo digital es de uso exclusivo para clientes de {name_inmo}.", align='C')
     
-    return pdf.output(dest='S')
+    # LA CORRECCIÓN MÁGICA ESTÁ AQUÍ (Convertir a bytes directos)
+    return bytes(pdf.output())
 
 with col2:
     st.write("### 🪐 Materiales Listos para Descarga")
@@ -135,7 +134,6 @@ with col2:
                 modelo = genai.GenerativeModel('gemini-2.5-flash')
                 
                 with st.spinner('Modelando copywriter, adaptando branding y ensamblando PDF...'):
-                    # Prompt inteligente con arquitectura de marca blanca
                     prompt = f"""
                     Eres un experto copywriter del sector inmobiliario de lujo. Escribe estrictamente DOS bloques de texto separados por la palabra clave "===SEPARADOR===". No saludes, no agregues explicaciones.
                     
@@ -161,7 +159,6 @@ with col2:
                     copy_whatsapp = textos[0].strip()
                     texto_pdf = textos[1].strip() if len(textos) > 1 else copy_whatsapp
                     
-                    # Ejecución de los motores visuales y documentales
                     collage_final = crear_collage(foto1, foto2, foto3, foto4)
                     pdf_final_bytes = generar_pdf(
                         titulo_propiedad, precio_inmueble, texto_pdf, 
@@ -169,9 +166,7 @@ with col2:
                         foto1, foto2, foto3, foto4
                     )
                 
-                st.success("¡Ficha y Materiales Generados de Forma Exitosa!")
-                
-                # 📥 BOTÓN DIGITAL DE DESCARGA DE FICHA PDF
+                # 📥 BOTÓN DIGITAL DE DESCARGA DE FICHA PDF LISTO
                 st.download_button(
                     label="📄 Descargar Ficha Técnica PDF Personalizada",
                     data=pdf_final_bytes,
@@ -179,6 +174,8 @@ with col2:
                     mime="application/pdf",
                     use_container_width=True
                 )
+                
+                st.success("¡Ficha y Materiales Generados de Forma Exitosa!")
                 
                 st.markdown("#### 📲 Mensaje Personalizado de WhatsApp (Copia y Pega):")
                 st.info(copy_whatsapp)
