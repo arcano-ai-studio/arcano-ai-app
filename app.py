@@ -47,7 +47,6 @@ def crear_collage(img1, img2, img3, img4):
     return lienzo
 
 def procesar_imagen(file_obj):
-    # Procesa imágenes para evitar errores de transparencia (Canal Alpha) en el PDF
     if not file_obj: return None
     img = Image.open(file_obj)
     if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
@@ -99,7 +98,7 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     # Función de ayuda para Títulos de Sección
     def titulo_seccion(texto, y_pos):
         pdf.set_xy(15, y_pos)
-        pdf.set_fill_color(197, 168, 128) # Rectángulo Dorado
+        pdf.set_fill_color(197, 168, 128) 
         pdf.rect(15, y_pos, 2, 6, 'F')
         pdf.set_xy(19, y_pos)
         pdf.set_font("Helvetica", 'B', 12)
@@ -250,7 +249,7 @@ with col2:
                 modelo = genai.GenerativeModel('gemini-2.5-flash')
                 
                 with st.spinner('Extrayendo datos arquitectónicos y dibujando cuadrículas PDF...'):
-                    # Prompt especializado para que la IA escupa un formato estricto (JSON)
+                    # Prompt especializado para JSON
                     prompt = f"""
                     Analiza esta descripción y extrae los datos solicitados. Devuelve ÚNICAMENTE un formato JSON válido, sin texto extra, con esta estructura exacta:
                     {{
@@ -269,8 +268,10 @@ with col2:
                     """
                     
                     respuesta = modelo.generate_content(prompt)
-                    res_texto = respuesta.text.replace("```json", "").replace("
-```", "").strip()
+                    
+                    # Corrección segura a prueba de GitHub
+                    marca_codigo = "`" * 3
+                    res_texto = respuesta.text.replace(marca_codigo + "json", "").replace(marca_codigo, "").strip()
                     
                     try:
                         datos_json = json.loads(res_texto)
