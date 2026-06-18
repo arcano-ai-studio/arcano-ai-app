@@ -4,13 +4,15 @@ from PIL import Image, ImageDraw, ImageFont
 from fpdf import FPDF
 import io
 import json
+import os
+import urllib.request
 
 # Configuración de la pantalla
 st.set_page_config(page_title="Arcano AI Studio", page_icon="🏢", layout="wide")
 
 st.title("🏢 Arcano AI Studio")
 st.subheader("Central de Inteligencia Inmobiliaria - Versión Pro (Marca Blanca)")
-st.markdown("Genera kits de venta personalizados: Mensaje de WhatsApp, Collage con Textos y Ficha PDF.")
+st.markdown("Genera kits de venta personalizados: Mensaje de WhatsApp, Arte para Estados y Ficha PDF.")
 st.markdown("---")
 
 # Inicializar la "Memoria"
@@ -42,7 +44,7 @@ with col1:
     foto3 = st.file_uploader("Foto 3: Recámaras / Privado", type=['jpg', 'jpeg', 'png'])
     foto4 = st.file_uploader("Foto 4: Amenidades / Detalles", type=['jpg', 'jpeg', 'png'])
 
-def crear_collage(img1, img2, img3, img4, tipo):
+def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
     lienzo = Image.new('RGB', (1080, 1080), color=(26, 43, 76)) 
     def preparar(f): return Image.open(f).resize((540, 540))
     lienzo.paste(preparar(img1), (0, 0))
@@ -53,16 +55,37 @@ def crear_collage(img1, img2, img3, img4, tipo):
     capa_dibujo = Image.new('RGBA', (1080, 1080), (255, 255, 255, 0))
     dibujo = ImageDraw.Draw(capa_dibujo)
     
-    dibujo.rectangle([0, 460, 1080, 620], fill=(26, 43, 76, 220)) 
+    # Cinturón central más ancho para que quepa todo el contexto
+    dibujo.rectangle([0, 380, 1080, 700], fill=(26, 43, 76, 230)) 
     dibujo.rectangle([0, 980, 1080, 1080], fill=(197, 168, 128, 255)) 
     
+    # Descargar fuente profesional de Google Fonts en tiempo real
+    font_path = "Roboto-Bold.ttf"
+    if not os.path.exists(font_path):
+        try:
+            urllib.request.urlretrieve("https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Bold.ttf", font_path)
+        except:
+            pass
+
     try:
-        fuente_grande = ImageFont.truetype("DejaVuSans-Bold.ttf", 65)
+        fuente_gigante = ImageFont.truetype(font_path, 80)
+        fuente_mediana = ImageFont.truetype(font_path, 45)
+        fuente_chica = ImageFont.truetype(font_path, 35)
     except:
-        fuente_grande = ImageFont.load_default()
+        fuente_gigante = ImageFont.load_default()
+        fuente_mediana = ImageFont.load_default()
+        fuente_chica = ImageFont.load_default()
         
     texto_oferta = f"¡{tipo.upper()} EN VENTA!"
-    dibujo.text((540, 540), texto_oferta, fill=(255, 255, 255, 255), font=fuente_grande, anchor="mm")
+    
+    # Textos centrados y legibles
+    dibujo.text((540, 450), texto_oferta, fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
+    
+    # Cortar el título si es muy largo para que no se salga de la imagen
+    titulo_corto = titulo if len(titulo) < 38 else titulo[:35] + "..."
+    dibujo.text((540, 540), titulo_corto.upper(), fill=(197, 168, 128, 255), font=fuente_mediana, anchor="mm")
+    
+    dibujo.text((540, 620), precio, fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
     
     lienzo = Image.alpha_composite(lienzo.convert('RGBA'), capa_dibujo)
     return lienzo.convert('RGB')
@@ -79,7 +102,6 @@ def procesar_imagen(file_obj):
     temp.seek(0)
     return temp
 
-# MOTOR PDF BLINDADO
 def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_cont, f1, f2, f3, f4):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
@@ -102,42 +124,39 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         pdf.set_text_color(197, 168, 128)
         pdf.cell(90, 4, palabra2.upper(), ln=1)
     
-    # Encabezado Derecho
     pdf.set_xy(100, 10)
     pdf.set_font("Helvetica", 'B', 10)
     pdf.set_text_color(120, 120, 120)
     pdf.cell(95, 5, "FICHA TÉCNICA EJECUTIVA", ln=1, align='R')
     
-    # Status DISPONIBLE con Círculo Vectorial (Corrección del error)
     pdf.set_xy(100, 15)
     pdf.set_font("Helvetica", 'B', 9)
     pdf.set_text_color(46, 125, 50)
     pdf.cell(95, 5, "DISPONIBLE", ln=1, align='R')
-    # Dibujo del punto verde a la medida (X, Y, Ancho, Alto)
     pdf.set_fill_color(46, 125, 50)
     pdf.ellipse(172, 16.5, 2.5, 2.5, 'F') 
     
-    # Línea Divisoria Superior
     pdf.set_draw_color(26, 43, 76)
     pdf.set_line_width(0.8)
     pdf.line(15, 24, 195, 24)
     
-    # Título Dinámico y Precio
-    pdf.set_xy(15, 28)
+    # Ajuste milimétrico de Título y Precio
+    # Precio a la derecha
+    pdf.set_xy(145, 28)
     pdf.set_font("Helvetica", 'B', 18)
     pdf.set_text_color(26, 43, 76)
-    pdf.cell(180, 8, precio, ln=0, align='R') 
+    pdf.cell(50, 8, precio, ln=0, align='R') 
     
+    # Título a la izquierda (con su propio cajón para no chocar)
     pdf.set_xy(15, 28)
     pdf.set_text_color(50, 50, 50)
-    longitud_titulo = len(titulo)
-    if longitud_titulo < 35: pdf.set_font("Helvetica", 'B', 16)
-    elif longitud_titulo < 55: pdf.set_font("Helvetica", 'B', 13)
-    else: pdf.set_font("Helvetica", 'B', 11)
-    pdf.multi_cell(120, 7, titulo.upper()) 
+    pdf.set_font("Helvetica", 'B', 14)
+    pdf.multi_cell(125, 6, titulo.upper(), align='L') 
     
-    # Ubicación
-    pdf.set_xy(15, pdf.get_y() + 2)
+    # Ubicación (dinámica basada en donde terminó el título)
+    y_ubicacion = pdf.get_y() + 2
+    if y_ubicacion < 38: y_ubicacion = 38 # Margen mínimo
+    pdf.set_xy(15, y_ubicacion)
     pdf.set_font("Helvetica", '', 10)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(180, 5, datos.get('ubicacion', '').encode('latin-1', 'ignore').decode('latin-1'), ln=1)
@@ -180,7 +199,9 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     fila_tabla("Superficie de Terreno", datos.get('terreno', 'No especificado'), True)
     fila_tabla("Superficie de Construcción", datos.get('construccion', 'No aplica'), False)
     fila_tabla("Niveles", datos.get('niveles', 'No especificado'), True)
-    fila_tabla("Esquema Legal", "Propiedad privada, lista para estructurar.", False)
+    
+    # CORRECCIÓN DE ERROR ORTOGRÁFICO
+    fila_tabla("Esquema Legal", "Propiedad privada, lista para escriturar.", False)
     
     y = titulo_seccion("Descripción General", y + 8)
     pdf.set_xy(15, y)
@@ -200,7 +221,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     y_col1 = pdf.get_y()
     for item in datos.get('planta_baja', []):
         pdf.set_x(15)
-        # Cambio de viñeta unicode a guión estándar
         pdf.multi_cell(85, 4.5, f"- {item.encode('latin-1', 'ignore').decode('latin-1')}")
     
     pdf.set_xy(110, y)
@@ -212,7 +232,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_y(y_col1)
     for item in datos.get('planta_alta', []):
         pdf.set_x(110)
-        # Cambio de viñeta unicode a guión estándar
         pdf.multi_cell(85, 4.5, f"- {item.encode('latin-1', 'ignore').decode('latin-1')}")
     
     pdf.set_xy(15, 280)
@@ -305,17 +324,23 @@ with col2:
                     res_texto = respuesta.text.replace(marca_codigo + "json", "").replace(marca_codigo, "").strip()
                     datos_json = json.loads(res_texto)
                     
-                    collage_final = crear_collage(foto1, foto2, foto3, foto4, tipo_propiedad)
+                    collage_final = crear_collage(foto1, foto2, foto3, foto4, tipo_propiedad, titulo_propiedad, precio_inmueble)
                     pdf_final_bytes = generar_pdf_estructurado(
                         titulo_propiedad, precio_inmueble, datos_json, 
                         inmobiliaria, asesor, contacto, 
                         foto1, foto2, foto3, foto4
                     )
                     
+                    # Convertir la imagen del Collage a un formato descargable
+                    img_byte_arr = io.BytesIO()
+                    collage_final.save(img_byte_arr, format='JPEG')
+                    img_bytes = img_byte_arr.getvalue()
+                    
                     st.session_state.resultados = {
                         "pdf": pdf_final_bytes,
                         "whatsapp": datos_json.get("whatsapp", ""),
-                        "collage": collage_final,
+                        "collage_img": collage_final,
+                        "collage_bytes": img_bytes,
                         "titulo": titulo_propiedad
                     }
             except Exception as e:
@@ -326,16 +351,27 @@ with col2:
         
         st.success("¡Materiales Generados con Éxito!")
         
-        st.download_button(
-            label="📄 DESCARGAR FICHA TÉCNICA (PDF)",
-            data=res["pdf"],
-            file_name=f"Ficha_{res['titulo'].replace(' ', '_')}.pdf",
-            mime="application/pdf",
-            use_container_width=True
-        )
+        # Agregamos dos columnas para poner los dos botones de descarga en orden
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            st.download_button(
+                label="📄 DESCARGAR FICHA PDF",
+                data=res["pdf"],
+                file_name=f"Ficha_{res['titulo'].replace(' ', '_')}.pdf",
+                mime="application/pdf",
+                use_container_width=True
+            )
+        with col_btn2:
+            st.download_button(
+                label="📸 DESCARGAR ARTE (WHATSAPP)",
+                data=res["collage_bytes"],
+                file_name=f"Estado_{res['titulo'].replace(' ', '_')}.jpg",
+                mime="image/jpeg",
+                use_container_width=True
+            )
         
         st.markdown("#### 💬 Copy WhatsApp Listo:")
         st.info(res["whatsapp"])
         
-        st.markdown("#### 📱 Arte para Estados (WhatsApp/Instagram):")
-        st.image(res["collage"], use_container_width=True)
+        st.markdown("#### 📱 Vista Previa del Arte:")
+        st.image(res["collage_img"], use_container_width=True)
