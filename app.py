@@ -13,7 +13,6 @@ st.set_page_config(page_title="Arcano AI Studio", page_icon="🏢", layout="wide
 # 2. INYECCIÓN DE ESTILOS CORPORATIVOS (CSS)
 st.markdown("""
 <style>
-    /* Estilo para los botones principales */
     div.stButton > button:first-child {
         background-color: #1a2b4c;
         color: white;
@@ -27,7 +26,6 @@ st.markdown("""
         color: #1a2b4c;
         border-color: #1a2b4c;
     }
-    /* Encabezados personalizados */
     h1, h2, h3 {
         color: #1a2b4c;
         font-family: 'Helvetica Neue', sans-serif;
@@ -35,10 +33,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. ENCABEZADO Y LOGOTIPO (DISEÑO FRONTEND)
+# 3. ENCABEZADO Y LOGOTIPO
 col_logo, col_titulo = st.columns([1, 6])
 with col_logo:
-    # Usamos un icono gigante por ahora. Si subes un logo a GitHub llamado 'logo.png', cambias esto a st.image("logo.png")
     st.markdown("<h1 style='text-align: center; font-size: 3.5rem;'>🌌</h1>", unsafe_allow_html=True)
 with col_titulo:
     st.markdown("<h1 style='margin-bottom: 0px;'>Arcano AI Studio</h1>", unsafe_allow_html=True)
@@ -70,13 +67,12 @@ with col1:
     descripcion = st.text_area("Pega aquí todos los detalles (Metros, distribución, esquema legal, etc.):", height=120)
     
     st.write("### 📸 4. Carga de Fotografías (Optimizado para Celular)")
-    st.info("💡 En celular: Toca el botón de 'Browse files' para abrir tu galería de imágenes o la cámara.")
+    st.info("💡 En celular: Toca el botón para abrir tu galería de imágenes o la cámara.")
     foto1 = st.file_uploader("🖼️ 1. Foto Principal (Fachada)", type=['jpg', 'jpeg', 'png'])
     foto2 = st.file_uploader("🛋️ 2. Foto de Interiores o Estancia", type=['jpg', 'jpeg', 'png'])
     foto3 = st.file_uploader("🛏️ 3. Foto de Privados o Recámaras", type=['jpg', 'jpeg', 'png'])
     foto4 = st.file_uploader("✨ 4. Foto de Amenidades o Detalles", type=['jpg', 'jpeg', 'png'])
 
-# FUNCIONES DE MOTORES (Se mantienen intactas y eficientes)
 def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
     lienzo = Image.new('RGB', (1080, 1080), color=(26, 43, 76)) 
     def preparar(f): return Image.open(f).resize((540, 540))
@@ -107,7 +103,7 @@ def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
     dibujo.text((540, 450), texto_oferta, fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
     titulo_corto = titulo if len(titulo) < 38 else titulo[:35] + "..."
     dibujo.text((540, 540), titulo_corto.upper(), fill=(197, 168, 128, 255), font=fuente_mediana, anchor="mm")
-    dibujo.text((540, 620), precio, fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
+    dibujo.text((540, 620), str(precio), fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
     
     lienzo = Image.alpha_composite(lienzo.convert('RGBA'), capa_dibujo)
     return lienzo.convert('RGB')
@@ -130,7 +126,7 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     
     # PAGINA 1
     pdf.add_page()
-    partes = name_inmo.split(" ", 1)
+    partes = str(name_inmo).split(" ", 1)
     palabra1 = partes[0]
     palabra2 = partes[1] if len(partes)>1 else ""
     
@@ -162,19 +158,20 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_xy(145, 28)
     pdf.set_font("Helvetica", 'B', 18)
     pdf.set_text_color(26, 43, 76)
-    pdf.cell(50, 8, precio, ln=0, align='R') 
+    pdf.cell(50, 8, str(precio), ln=0, align='R') 
     
     pdf.set_xy(15, 28)
     pdf.set_text_color(50, 50, 50)
     pdf.set_font("Helvetica", 'B', 14)
-    pdf.multi_cell(125, 6, titulo.upper(), align='L') 
+    pdf.multi_cell(125, 6, str(titulo).upper(), align='L') 
     
     y_ubicacion = pdf.get_y() + 2
     if y_ubicacion < 38: y_ubicacion = 38 
     pdf.set_xy(15, y_ubicacion)
     pdf.set_font("Helvetica", '', 10)
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(180, 5, datos.get('ubicacion', '').encode('latin-1', 'ignore').decode('latin-1'), ln=1)
+    ubi_str = str(datos.get('ubicacion', ''))
+    pdf.cell(180, 5, ubi_str.encode('latin-1', 'ignore').decode('latin-1'), ln=1)
     
     def titulo_seccion(texto, y_pos):
         pdf.set_xy(15, y_pos)
@@ -204,7 +201,10 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         pdf.cell(55, 7, etiqueta, fill=True, border='B')
         pdf.set_font("Helvetica", '', 9)
         pdf.set_text_color(45, 55, 72)
-        val_clean = valor.encode('latin-1', 'ignore').decode('latin-1')[:85]
+        
+        # BLINDAJE: Forzar a string antes de limpiar
+        val_str = str(valor)
+        val_clean = val_str.encode('latin-1', 'ignore').decode('latin-1')[:85]
         pdf.cell(125, 7, val_clean, fill=True, border='B', ln=1)
         y += 7
 
@@ -218,7 +218,8 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_xy(15, y)
     pdf.set_font("Helvetica", '', 10)
     pdf.set_text_color(45, 55, 72)
-    desc_clean = datos.get('descripcion_pdf', '').encode('latin-1', 'ignore').decode('latin-1')
+    desc_str = str(datos.get('descripcion_pdf', ''))
+    desc_clean = desc_str.encode('latin-1', 'ignore').decode('latin-1')
     pdf.multi_cell(180, 5.5, desc_clean)
     
     y = titulo_seccion("Distribución / Amenidades", pdf.get_y() + 8)
@@ -231,7 +232,8 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     y_col1 = pdf.get_y()
     for item in datos.get('planta_baja', []):
         pdf.set_x(15)
-        pdf.multi_cell(85, 4.5, f"- {item.encode('latin-1', 'ignore').decode('latin-1')}")
+        item_str = str(item)
+        pdf.multi_cell(85, 4.5, f"- {item_str.encode('latin-1', 'ignore').decode('latin-1')}")
     
     pdf.set_xy(110, y)
     pdf.set_font("Helvetica", 'B', 10)
@@ -242,7 +244,8 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_y(y_col1)
     for item in datos.get('planta_alta', []):
         pdf.set_x(110)
-        pdf.multi_cell(85, 4.5, f"- {item.encode('latin-1', 'ignore').decode('latin-1')}")
+        item_str = str(item)
+        pdf.multi_cell(85, 4.5, f"- {item_str.encode('latin-1', 'ignore').decode('latin-1')}")
     
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
@@ -346,10 +349,10 @@ with col2:
                     
                     st.session_state.resultados = {
                         "pdf": pdf_final_bytes,
-                        "whatsapp": datos_json.get("whatsapp", ""),
+                        "whatsapp": str(datos_json.get("whatsapp", "")),
                         "collage_img": collage_final,
                         "collage_bytes": img_bytes,
-                        "titulo": titulo_propiedad
+                        "titulo": str(titulo_propiedad)
                     }
             except Exception as e:
                 st.error(f"Error en el motor: {e}")
@@ -378,7 +381,6 @@ with col2:
                 use_container_width=True
             )
             
-        # --- EL NUEVO BOTÓN PARA LIMPIAR Y HACER OTRA FICHA ---
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🔄 Crear Nueva Ficha Inmobiliaria", use_container_width=True):
             for key in list(st.session_state.keys()):
