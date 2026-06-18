@@ -7,12 +7,43 @@ import json
 import os
 import urllib.request
 
-# Configuración de la pantalla
+# 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Arcano AI Studio", page_icon="🏢", layout="wide")
 
-st.title("🏢 Arcano AI Studio")
-st.subheader("Central de Inteligencia Inmobiliaria - Versión Pro (Marca Blanca)")
-st.markdown("Genera kits de venta personalizados: Mensaje de WhatsApp, Arte para Estados y Ficha PDF.")
+# 2. INYECCIÓN DE ESTILOS CORPORATIVOS (CSS)
+st.markdown("""
+<style>
+    /* Estilo para los botones principales */
+    div.stButton > button:first-child {
+        background-color: #1a2b4c;
+        color: white;
+        border-radius: 8px;
+        border: 2px solid #c5a880;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    div.stButton > button:first-child:hover {
+        background-color: #c5a880;
+        color: #1a2b4c;
+        border-color: #1a2b4c;
+    }
+    /* Encabezados personalizados */
+    h1, h2, h3 {
+        color: #1a2b4c;
+        font-family: 'Helvetica Neue', sans-serif;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 3. ENCABEZADO Y LOGOTIPO (DISEÑO FRONTEND)
+col_logo, col_titulo = st.columns([1, 6])
+with col_logo:
+    # Usamos un icono gigante por ahora. Si subes un logo a GitHub llamado 'logo.png', cambias esto a st.image("logo.png")
+    st.markdown("<h1 style='text-align: center; font-size: 3.5rem;'>🌌</h1>", unsafe_allow_html=True)
+with col_titulo:
+    st.markdown("<h1 style='margin-bottom: 0px;'>Arcano AI Studio</h1>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #c5a880; margin-top: 0px;'>Central de Inteligencia Inmobiliaria - Versión Pro</h4>", unsafe_allow_html=True)
+
 st.markdown("---")
 
 # Inicializar la "Memoria"
@@ -25,25 +56,27 @@ api_key = st.sidebar.text_input("API Key de Gemini:", type="password")
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.write("### 🏠 1. Tipo de Inmueble")
-    tipo_propiedad = st.radio("Selecciona lo que vamos a comercializar:", ["Casa Habitación", "Terreno"], horizontal=True)
+    st.write("### 🏠 1. ¿Qué vamos a vender hoy?")
+    tipo_propiedad = st.radio("Selecciona el tipo de inmueble:", ["Casa Habitación", "Terreno"], horizontal=True)
     
-    st.write("### 👤 2. Marca Blanca")
+    st.write("### 👤 2. Datos del Asesor (Marca Blanca)")
     inmobiliaria = st.text_input("Nombre de la Inmobiliaria:", value="Arconte Bienes Raíces")
-    asesor = st.text_input("Nombre del Asesor:", value="Javier Enciso")
-    contacto = st.text_input("WhatsApp de Contacto (Ej: 7711234567):")
+    asesor = st.text_input("Tu Nombre Completo:", value="Javier Enciso")
+    contacto = st.text_input("Tu WhatsApp para que te contacten (Ej: 7711234567):")
     
-    st.write("### 📝 3. Datos del Inmueble")
+    st.write("### 📝 3. Detalles de la Propiedad")
     titulo_propiedad = st.text_input("Título Comercial (Ej: Casa Moderna en Forjadores):")
-    precio_inmueble = st.text_input("Precio de Operación (Ej: $2,700,000 MXN):")
-    descripcion = st.text_area("Descripción cruda (Metros, distribución, esquema legal, etc.):", height=120)
+    precio_inmueble = st.text_input("Precio de Venta (Ej: $2,700,000 MXN):")
+    descripcion = st.text_area("Pega aquí todos los detalles (Metros, distribución, esquema legal, etc.):", height=120)
     
-    st.write("### 📸 4. Expediente Fotográfico")
-    foto1 = st.file_uploader("Foto 1: Fachada Principal", type=['jpg', 'jpeg', 'png'])
-    foto2 = st.file_uploader("Foto 2: Estancia / Interiores", type=['jpg', 'jpeg', 'png'])
-    foto3 = st.file_uploader("Foto 3: Recámaras / Privado", type=['jpg', 'jpeg', 'png'])
-    foto4 = st.file_uploader("Foto 4: Amenidades / Detalles", type=['jpg', 'jpeg', 'png'])
+    st.write("### 📸 4. Carga de Fotografías (Optimizado para Celular)")
+    st.info("💡 En celular: Toca el botón de 'Browse files' para abrir tu galería de imágenes o la cámara.")
+    foto1 = st.file_uploader("🖼️ 1. Foto Principal (Fachada)", type=['jpg', 'jpeg', 'png'])
+    foto2 = st.file_uploader("🛋️ 2. Foto de Interiores o Estancia", type=['jpg', 'jpeg', 'png'])
+    foto3 = st.file_uploader("🛏️ 3. Foto de Privados o Recámaras", type=['jpg', 'jpeg', 'png'])
+    foto4 = st.file_uploader("✨ 4. Foto de Amenidades o Detalles", type=['jpg', 'jpeg', 'png'])
 
+# FUNCIONES DE MOTORES (Se mantienen intactas y eficientes)
 def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
     lienzo = Image.new('RGB', (1080, 1080), color=(26, 43, 76)) 
     def preparar(f): return Image.open(f).resize((540, 540))
@@ -55,36 +88,25 @@ def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
     capa_dibujo = Image.new('RGBA', (1080, 1080), (255, 255, 255, 0))
     dibujo = ImageDraw.Draw(capa_dibujo)
     
-    # Cinturón central más ancho para que quepa todo el contexto
     dibujo.rectangle([0, 380, 1080, 700], fill=(26, 43, 76, 230)) 
     dibujo.rectangle([0, 980, 1080, 1080], fill=(197, 168, 128, 255)) 
     
-    # Descargar fuente profesional de Google Fonts en tiempo real
     font_path = "Roboto-Bold.ttf"
     if not os.path.exists(font_path):
-        try:
-            urllib.request.urlretrieve("https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Bold.ttf", font_path)
-        except:
-            pass
+        try: urllib.request.urlretrieve("https://github.com/googlefonts/roboto/raw/main/src/hinted/Roboto-Bold.ttf", font_path)
+        except: pass
 
     try:
         fuente_gigante = ImageFont.truetype(font_path, 80)
         fuente_mediana = ImageFont.truetype(font_path, 45)
-        fuente_chica = ImageFont.truetype(font_path, 35)
     except:
         fuente_gigante = ImageFont.load_default()
         fuente_mediana = ImageFont.load_default()
-        fuente_chica = ImageFont.load_default()
         
     texto_oferta = f"¡{tipo.upper()} EN VENTA!"
-    
-    # Textos centrados y legibles
     dibujo.text((540, 450), texto_oferta, fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
-    
-    # Cortar el título si es muy largo para que no se salga de la imagen
     titulo_corto = titulo if len(titulo) < 38 else titulo[:35] + "..."
     dibujo.text((540, 540), titulo_corto.upper(), fill=(197, 168, 128, 255), font=fuente_mediana, anchor="mm")
-    
     dibujo.text((540, 620), precio, fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
     
     lienzo = Image.alpha_composite(lienzo.convert('RGBA'), capa_dibujo)
@@ -106,9 +128,8 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
     
-    # ---------------- PÁGINA 1 ----------------
+    # PAGINA 1
     pdf.add_page()
-    
     partes = name_inmo.split(" ", 1)
     palabra1 = partes[0]
     palabra2 = partes[1] if len(partes)>1 else ""
@@ -117,7 +138,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_font("Helvetica", 'B', 24)
     pdf.set_text_color(26, 43, 76)
     pdf.cell(90, 8, palabra1.upper(), ln=1)
-    
     if palabra2:
         pdf.set_xy(15, 16)
         pdf.set_font("Helvetica", 'B', 9)
@@ -128,7 +148,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_font("Helvetica", 'B', 10)
     pdf.set_text_color(120, 120, 120)
     pdf.cell(95, 5, "FICHA TÉCNICA EJECUTIVA", ln=1, align='R')
-    
     pdf.set_xy(100, 15)
     pdf.set_font("Helvetica", 'B', 9)
     pdf.set_text_color(46, 125, 50)
@@ -140,22 +159,18 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_line_width(0.8)
     pdf.line(15, 24, 195, 24)
     
-    # Ajuste milimétrico de Título y Precio
-    # Precio a la derecha
     pdf.set_xy(145, 28)
     pdf.set_font("Helvetica", 'B', 18)
     pdf.set_text_color(26, 43, 76)
     pdf.cell(50, 8, precio, ln=0, align='R') 
     
-    # Título a la izquierda (con su propio cajón para no chocar)
     pdf.set_xy(15, 28)
     pdf.set_text_color(50, 50, 50)
     pdf.set_font("Helvetica", 'B', 14)
     pdf.multi_cell(125, 6, titulo.upper(), align='L') 
     
-    # Ubicación (dinámica basada en donde terminó el título)
     y_ubicacion = pdf.get_y() + 2
-    if y_ubicacion < 38: y_ubicacion = 38 # Margen mínimo
+    if y_ubicacion < 38: y_ubicacion = 38 
     pdf.set_xy(15, y_ubicacion)
     pdf.set_font("Helvetica", '', 10)
     pdf.set_text_color(100, 100, 100)
@@ -172,7 +187,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         return y_pos + 8
         
     y = titulo_seccion("Datos Técnicos del Inmueble", pdf.get_y() + 8)
-    
     pdf.set_fill_color(26, 43, 76)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Helvetica", 'B', 9)
@@ -188,7 +202,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         pdf.set_font("Helvetica", 'B', 9)
         pdf.set_text_color(70, 85, 104)
         pdf.cell(55, 7, etiqueta, fill=True, border='B')
-        
         pdf.set_font("Helvetica", '', 9)
         pdf.set_text_color(45, 55, 72)
         val_clean = valor.encode('latin-1', 'ignore').decode('latin-1')[:85]
@@ -199,8 +212,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     fila_tabla("Superficie de Terreno", datos.get('terreno', 'No especificado'), True)
     fila_tabla("Superficie de Construcción", datos.get('construccion', 'No aplica'), False)
     fila_tabla("Niveles", datos.get('niveles', 'No especificado'), True)
-    
-    # CORRECCIÓN DE ERROR ORTOGRÁFICO
     fila_tabla("Esquema Legal", "Propiedad privada, lista para escriturar.", False)
     
     y = titulo_seccion("Descripción General", y + 8)
@@ -211,7 +222,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.multi_cell(180, 5.5, desc_clean)
     
     y = titulo_seccion("Distribución / Amenidades", pdf.get_y() + 8)
-    
     pdf.set_xy(15, y)
     pdf.set_font("Helvetica", 'B', 10)
     pdf.set_text_color(26, 43, 76)
@@ -239,9 +249,8 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_text_color(150, 150, 150)
     pdf.cell(180, 10, f"{name_inmo} | Página 1 de 2", align='C')
 
-    # ---------------- PÁGINA 2 ----------------
+    # PAGINA 2
     pdf.add_page()
-    
     y = titulo_seccion("Galería Registrada en Catálogo", 20)
     pdf.set_xy(15, y)
     pdf.set_font("Helvetica", '', 9)
@@ -293,7 +302,7 @@ with col2:
     st.write("### 🪐 Centro de Procesamiento")
     
     if st.button("🚀 Generar Todo el Material", use_container_width=True):
-        if not api_key: st.error("⚠️ Ingresa tu API Key maestra.")
+        if not api_key: st.error("⚠️ Ingresa tu API Key maestra en el menú izquierdo.")
         elif not descripcion or not titulo_propiedad: st.warning("⚠️ Faltan datos del inmueble.")
         elif not (foto1 and foto2 and foto3 and foto4): st.warning("⚠️ Sube las 4 fotografías.")
         else:
@@ -331,7 +340,6 @@ with col2:
                         foto1, foto2, foto3, foto4
                     )
                     
-                    # Convertir la imagen del Collage a un formato descargable
                     img_byte_arr = io.BytesIO()
                     collage_final.save(img_byte_arr, format='JPEG')
                     img_bytes = img_byte_arr.getvalue()
@@ -346,16 +354,16 @@ with col2:
             except Exception as e:
                 st.error(f"Error en el motor: {e}")
 
+    # Mostrar Resultados desde la Memoria
     if st.session_state.resultados:
         res = st.session_state.resultados
         
         st.success("¡Materiales Generados con Éxito!")
         
-        # Agregamos dos columnas para poner los dos botones de descarga en orden
         col_btn1, col_btn2 = st.columns(2)
         with col_btn1:
             st.download_button(
-                label="📄 DESCARGAR FICHA PDF",
+                label="📄 DESCARGAR PDF",
                 data=res["pdf"],
                 file_name=f"Ficha_{res['titulo'].replace(' ', '_')}.pdf",
                 mime="application/pdf",
@@ -363,12 +371,19 @@ with col2:
             )
         with col_btn2:
             st.download_button(
-                label="📸 DESCARGAR ARTE (WHATSAPP)",
+                label="📸 DESCARGAR ARTE",
                 data=res["collage_bytes"],
                 file_name=f"Estado_{res['titulo'].replace(' ', '_')}.jpg",
                 mime="image/jpeg",
                 use_container_width=True
             )
+            
+        # --- EL NUEVO BOTÓN PARA LIMPIAR Y HACER OTRA FICHA ---
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🔄 Crear Nueva Ficha Inmobiliaria", use_container_width=True):
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
         
         st.markdown("#### 💬 Copy WhatsApp Listo:")
         st.info(res["whatsapp"])
