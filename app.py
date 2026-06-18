@@ -13,7 +13,7 @@ st.subheader("Central de Inteligencia Inmobiliaria - Versión Pro (Marca Blanca)
 st.markdown("Genera kits de venta personalizados: Mensaje de WhatsApp, Collage con Textos y Ficha PDF.")
 st.markdown("---")
 
-# Inicializar la "Memoria" de la aplicación para que no se borre al descargar
+# Inicializar la "Memoria"
 if 'resultados' not in st.session_state:
     st.session_state.resultados = None
 
@@ -43,7 +43,6 @@ with col1:
     foto4 = st.file_uploader("Foto 4: Amenidades / Detalles", type=['jpg', 'jpeg', 'png'])
 
 def crear_collage(img1, img2, img3, img4, tipo):
-    # Lienzo principal
     lienzo = Image.new('RGB', (1080, 1080), color=(26, 43, 76)) 
     def preparar(f): return Image.open(f).resize((540, 540))
     lienzo.paste(preparar(img1), (0, 0))
@@ -51,27 +50,20 @@ def crear_collage(img1, img2, img3, img4, tipo):
     lienzo.paste(preparar(img3), (0, 540))
     lienzo.paste(preparar(img4), (540, 540))
     
-    # Dibujar Banners
-    # Usamos RGBA para hacer el cinturón central semitransparente
     capa_dibujo = Image.new('RGBA', (1080, 1080), (255, 255, 255, 0))
     dibujo = ImageDraw.Draw(capa_dibujo)
     
-    # Cinturón central oscuro
     dibujo.rectangle([0, 460, 1080, 620], fill=(26, 43, 76, 220)) 
-    # Banner inferior dorado
     dibujo.rectangle([0, 980, 1080, 1080], fill=(197, 168, 128, 255)) 
     
-    # Intentar cargar una fuente grande, si no hay, usar predeterminada
     try:
         fuente_grande = ImageFont.truetype("DejaVuSans-Bold.ttf", 65)
     except:
         fuente_grande = ImageFont.load_default()
         
     texto_oferta = f"¡{tipo.upper()} EN VENTA!"
-    # Centrar texto aproximado
     dibujo.text((540, 540), texto_oferta, fill=(255, 255, 255, 255), font=fuente_grande, anchor="mm")
     
-    # Combinar el lienzo con la capa de dibujo
     lienzo = Image.alpha_composite(lienzo.convert('RGBA'), capa_dibujo)
     return lienzo.convert('RGB')
 
@@ -87,7 +79,7 @@ def procesar_imagen(file_obj):
     temp.seek(0)
     return temp
 
-# MOTOR PDF CON DISEÑO ESTÉTICO EXACTO
+# MOTOR PDF BLINDADO
 def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_cont, f1, f2, f3, f4):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
@@ -95,7 +87,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     # ---------------- PÁGINA 1 ----------------
     pdf.add_page()
     
-    # Separar el nombre de la inmobiliaria para dar diseño (Ej: "ARCONTE" grande, "Bienes Raíces" chico)
     partes = name_inmo.split(" ", 1)
     palabra1 = partes[0]
     palabra2 = partes[1] if len(partes)>1 else ""
@@ -117,22 +108,25 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_text_color(120, 120, 120)
     pdf.cell(95, 5, "FICHA TÉCNICA EJECUTIVA", ln=1, align='R')
     
-    # Status DISPONIBLE en verde vibrante
+    # Status DISPONIBLE con Círculo Vectorial (Corrección del error)
     pdf.set_xy(100, 15)
     pdf.set_font("Helvetica", 'B', 9)
     pdf.set_text_color(46, 125, 50)
-    pdf.cell(95, 5, "● DISPONIBLE", ln=1, align='R')
+    pdf.cell(95, 5, "DISPONIBLE", ln=1, align='R')
+    # Dibujo del punto verde a la medida (X, Y, Ancho, Alto)
+    pdf.set_fill_color(46, 125, 50)
+    pdf.ellipse(172, 16.5, 2.5, 2.5, 'F') 
     
     # Línea Divisoria Superior
     pdf.set_draw_color(26, 43, 76)
     pdf.set_line_width(0.8)
     pdf.line(15, 24, 195, 24)
     
-    # Título Dinámico (Ajusta tamaño si es muy largo) y Precio Fijo
+    # Título Dinámico y Precio
     pdf.set_xy(15, 28)
     pdf.set_font("Helvetica", 'B', 18)
     pdf.set_text_color(26, 43, 76)
-    pdf.cell(180, 8, precio, ln=0, align='R') # Precio a la derecha
+    pdf.cell(180, 8, precio, ln=0, align='R') 
     
     pdf.set_xy(15, 28)
     pdf.set_text_color(50, 50, 50)
@@ -140,9 +134,9 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     if longitud_titulo < 35: pdf.set_font("Helvetica", 'B', 16)
     elif longitud_titulo < 55: pdf.set_font("Helvetica", 'B', 13)
     else: pdf.set_font("Helvetica", 'B', 11)
-    pdf.multi_cell(120, 7, titulo.upper()) # Título a la izquierda, puede bajar de renglón
+    pdf.multi_cell(120, 7, titulo.upper()) 
     
-    # Ubicación debajo del título
+    # Ubicación
     pdf.set_xy(15, pdf.get_y() + 2)
     pdf.set_font("Helvetica", '', 10)
     pdf.set_text_color(100, 100, 100)
@@ -158,7 +152,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         pdf.cell(150, 6, texto.upper(), ln=1)
         return y_pos + 8
         
-    # DATOS TÉCNICOS
     y = titulo_seccion("Datos Técnicos del Inmueble", pdf.get_y() + 8)
     
     pdf.set_fill_color(26, 43, 76)
@@ -187,9 +180,8 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     fila_tabla("Superficie de Terreno", datos.get('terreno', 'No especificado'), True)
     fila_tabla("Superficie de Construcción", datos.get('construccion', 'No aplica'), False)
     fila_tabla("Niveles", datos.get('niveles', 'No especificado'), True)
-    fila_tabla("Esquema Legal", "Propiedad privada, lista para escriturar.", False)
+    fila_tabla("Esquema Legal", "Propiedad privada, lista para estructurar.", False)
     
-    # DESCRIPCIÓN
     y = titulo_seccion("Descripción General", y + 8)
     pdf.set_xy(15, y)
     pdf.set_font("Helvetica", '', 10)
@@ -197,7 +189,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     desc_clean = datos.get('descripcion_pdf', '').encode('latin-1', 'ignore').decode('latin-1')
     pdf.multi_cell(180, 5.5, desc_clean)
     
-    # DISTRIBUCIÓN
     y = titulo_seccion("Distribución / Amenidades", pdf.get_y() + 8)
     
     pdf.set_xy(15, y)
@@ -209,7 +200,8 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     y_col1 = pdf.get_y()
     for item in datos.get('planta_baja', []):
         pdf.set_x(15)
-        pdf.multi_cell(85, 4.5, f"• {item.encode('latin-1', 'ignore').decode('latin-1')}")
+        # Cambio de viñeta unicode a guión estándar
+        pdf.multi_cell(85, 4.5, f"- {item.encode('latin-1', 'ignore').decode('latin-1')}")
     
     pdf.set_xy(110, y)
     pdf.set_font("Helvetica", 'B', 10)
@@ -220,9 +212,9 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_y(y_col1)
     for item in datos.get('planta_alta', []):
         pdf.set_x(110)
-        pdf.multi_cell(85, 4.5, f"• {item.encode('latin-1', 'ignore').decode('latin-1')}")
+        # Cambio de viñeta unicode a guión estándar
+        pdf.multi_cell(85, 4.5, f"- {item.encode('latin-1', 'ignore').decode('latin-1')}")
     
-    # Pie de página 1
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
     pdf.set_text_color(150, 150, 150)
@@ -237,7 +229,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_text_color(100, 100, 100)
     pdf.cell(180, 5, "Este expediente vincula automáticamente las fotografías validadas dentro del catálogo maestro.", ln=1)
     
-    # Cuadrícula Visual
     y_img = 40
     try:
         if f1: pdf.image(procesar_imagen(f1), x=20, y=y_img, w=80, h=60)
@@ -259,7 +250,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     except Exception as e:
         pass
         
-    # Call to Action
     pdf.set_fill_color(26, 43, 76)
     pdf.rect(15, 230, 180, 30, 'F')
     pdf.set_font("Helvetica", 'B', 12)
@@ -322,7 +312,6 @@ with col2:
                         foto1, foto2, foto3, foto4
                     )
                     
-                    # Guardar en la Memoria del navegador
                     st.session_state.resultados = {
                         "pdf": pdf_final_bytes,
                         "whatsapp": datos_json.get("whatsapp", ""),
@@ -332,7 +321,6 @@ with col2:
             except Exception as e:
                 st.error(f"Error en el motor: {e}")
 
-    # Mostrar Resultados desde la Memoria (así no se borran al dar clic en descargar)
     if st.session_state.resultados:
         res = st.session_state.resultados
         
