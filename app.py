@@ -7,50 +7,49 @@ import json
 import os
 import urllib.request
 
-# 1. CONFIGURACIÓN DE PÁGINA
-st.set_page_config(page_title="Arcano AI Studio", page_icon="🏢", layout="wide")
+# 1. CONFIGURACIÓN DE PÁGINA (FAVICON ACTUALIZADO)
+st.set_page_config(page_title="Arcano AI Studio", page_icon="logo.png", layout="wide")
 
-# 2. INYECCIÓN DE ESTILOS CORPORATIVOS (PALETA ARCANO AI STUDIO)
+# 2. INYECCIÓN DE ESTILOS CORPORATIVOS
 st.markdown("""
 <style>
-    /* Color de fondo principal y botones */
     div.stButton > button:first-child {
-        background-color: #000066; /* Azul Profundo Arcano */
+        background-color: #000066; 
         color: white;
         border-radius: 8px;
-        border: 2px solid #008f39; /* Verde Red Neuronal Arcano */
+        border: 2px solid #008f39; 
         font-weight: bold;
         transition: all 0.3s ease;
     }
     div.stButton > button:first-child:hover {
-        background-color: #008f39; /* Verde Red Neuronal Arcano */
+        background-color: #008f39; 
         color: white;
-        border-color: #000066; /* Azul Profundo Arcano */
+        border-color: #000066; 
     }
-    /* Estilos de encabezados */
     h1, h2, h3 {
-        color: #000066; /* Azul Profundo Arcano */
+        color: #000066; 
         font-family: 'Helvetica Neue', sans-serif;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. ENCABEZADO Y LOGOTIPO OFICIAL
-col_logo, col_titulo = st.columns([1, 6])
+# 3. ENCABEZADO Y LOGOTIPO OFICIAL (ARMONÍA VISUAL MEJORADA)
+# Cambiamos la proporción de las columnas de [1, 6] a [1.5, 4] para darle más respiro al logo
+col_logo, col_titulo = st.columns([1.5, 4])
 with col_logo:
-    # El sistema buscará tu archivo logo.png, si no lo encuentra por unos segundos, pondrá un ícono temporal
     try:
         st.image("logo.png", use_container_width=True)
     except:
         st.markdown("<h1 style='text-align: center; font-size: 3.5rem;'>🏢</h1>", unsafe_allow_html=True)
 
 with col_titulo:
+    # Agregamos un margen superior para alinear los textos con el centro del logotipo
+    st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
     st.markdown("<h1 style='margin-bottom: 0px; color: #000066;'>ARCANO AI Studio</h1>", unsafe_allow_html=True)
     st.markdown("<h4 style='color: #ff6600; margin-top: 0px;'>Soluciones Inmobiliarias de Precisión</h4>", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# Inicializar la "Memoria"
 if 'resultados' not in st.session_state:
     st.session_state.resultados = None
 
@@ -60,8 +59,12 @@ api_key = st.sidebar.text_input("API Key de Gemini:", type="password")
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.write("### 🏠 1. ¿Qué vamos a vender hoy?")
-    tipo_propiedad = st.radio("Selecciona el tipo de inmueble:", ["Casa Habitación", "Terreno"], horizontal=True)
+    st.write("### 🏠 1. ¿Qué vamos a comercializar hoy?")
+    col_tipo, col_operacion = st.columns(2)
+    with col_tipo:
+        tipo_propiedad = st.radio("Tipo de inmueble:", ["Casa Habitación", "Terreno"])
+    with col_operacion:
+        operacion = st.radio("Modalidad:", ["Venta", "Renta"])
     
     st.write("### 👤 2. Datos del Asesor (Marca Blanca)")
     inmobiliaria = st.text_input("Nombre de la Inmobiliaria:", value="Arconte Bienes Raíces")
@@ -70,8 +73,8 @@ with col1:
     
     st.write("### 📝 3. Detalles de la Propiedad")
     titulo_propiedad = st.text_input("Título Comercial (Ej: Casa Moderna en Forjadores):")
-    precio_inmueble = st.text_input("Precio de Venta (Ej: $2,700,000 MXN):")
-    descripcion = st.text_area("Pega aquí todos los detalles (Metros, distribución, esquema legal, etc.):", height=120)
+    precio_inmueble = st.text_input(f"Precio de {operacion} (Ej: $15,000 MXN mensuales):")
+    descripcion = st.text_area("Pega aquí todos los detalles (Metros, distribución, amenidades, etc.):", height=120)
     
     st.write("### 📸 4. Carga de Fotografías")
     st.info("💡 En celular: Si abre 'Archivos', toca el menú de las 3 rayitas para ir a tu Galería.")
@@ -81,8 +84,8 @@ with col1:
     foto3 = st.file_uploader("🛏️ 3. Foto de Privados", type=['jpg', 'jpeg', 'png'], key="foto_3")
     foto4 = st.file_uploader("✨ 4. Foto de Amenidades", type=['jpg', 'jpeg', 'png'], key="foto_4")
 
-def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
-    lienzo = Image.new('RGB', (1080, 1080), color=(0, 0, 102)) # Fondo Azul Arcano
+def crear_collage(img1, img2, img3, img4, tipo, modalidad, titulo, precio):
+    lienzo = Image.new('RGB', (1080, 1080), color=(0, 0, 102)) 
     def preparar(f): return Image.open(f).resize((540, 540))
     lienzo.paste(preparar(img1), (0, 0))
     lienzo.paste(preparar(img2), (540, 0))
@@ -92,9 +95,8 @@ def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
     capa_dibujo = Image.new('RGBA', (1080, 1080), (255, 255, 255, 0))
     dibujo = ImageDraw.Draw(capa_dibujo)
     
-    # Cinturones con los nuevos colores
-    dibujo.rectangle([0, 380, 1080, 700], fill=(0, 0, 102, 230)) # Azul oscuro semitransparente
-    dibujo.rectangle([0, 980, 1080, 1080], fill=(255, 102, 0, 255)) # Naranja Arcano Inferior
+    dibujo.rectangle([0, 380, 1080, 700], fill=(0, 0, 102, 230)) 
+    dibujo.rectangle([0, 980, 1080, 1080], fill=(255, 102, 0, 255)) 
     
     font_path = "Roboto-Bold.ttf"
     if not os.path.exists(font_path):
@@ -108,8 +110,8 @@ def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
         fuente_gigante = ImageFont.load_default()
         fuente_mediana = ImageFont.load_default()
         
-    texto_oferta = f"¡{tipo.upper()} EN VENTA!"
-    dibujo.text((540, 450), texto_oferta, fill=(0, 143, 57, 255), font=fuente_gigante, anchor="mm") # Letras Verde Arcano
+    texto_oferta = f"¡{tipo.upper()} EN {modalidad.upper()}!"
+    dibujo.text((540, 450), texto_oferta, fill=(0, 143, 57, 255), font=fuente_gigante, anchor="mm") 
     titulo_corto = str(titulo) if len(str(titulo)) < 38 else str(titulo)[:35] + "..."
     dibujo.text((540, 540), titulo_corto.upper(), fill=(255, 255, 255, 255), font=fuente_mediana, anchor="mm")
     dibujo.text((540, 620), str(precio), fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
@@ -129,7 +131,7 @@ def procesar_imagen(file_obj):
     temp.seek(0)
     return temp
 
-def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_cont, f1, f2, f3, f4):
+def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_cont, f1, f2, f3, f4, modalidad):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
     
@@ -219,7 +221,9 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     fila_tabla("Superficie de Terreno", datos.get('terreno', 'No especificado'), True)
     fila_tabla("Superficie de Construcción", datos.get('construccion', 'No aplica'), False)
     fila_tabla("Niveles", datos.get('niveles', 'No especificado'), True)
-    fila_tabla("Esquema Legal", "Propiedad privada, lista para escriturar.", False)
+    
+    texto_legal = "Propiedad privada, lista para escriturar." if modalidad == "Venta" else "Disponible mediante contrato de arrendamiento."
+    fila_tabla("Esquema / Disponibilidad", texto_legal, False)
     
     y = titulo_seccion("Descripción General", y + 8)
     pdf.set_xy(15, y)
@@ -254,17 +258,21 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         item_str = str(item)
         pdf.multi_cell(85, 4.5, f"- {item_str.encode('latin-1', 'ignore').decode('latin-1')}")
     
-    # Inclusión obligatoria del Aviso Legal de ISR (Regla de los 3 Años)
-    pdf.set_y(268)
-    pdf.set_font("Helvetica", 'I', 7)
-    pdf.set_text_color(130, 130, 130)
-    aviso_isr = "* Aviso Legal: Tratándose de enajenación de Casa Habitación, consulte las condiciones y requisitos vigentes para la exención del Impuesto Sobre la Renta (ISR) conforme a la Regla de los 3 Años."
-    pdf.multi_cell(180, 3, aviso_isr.encode('latin-1', 'ignore').decode('latin-1'), align='C')
+    if modalidad == "Venta":
+        pdf.set_y(268)
+        pdf.set_font("Helvetica", 'I', 7)
+        pdf.set_text_color(130, 130, 130)
+        aviso_isr = "* Aviso Legal: Tratándose de enajenación de Casa Habitación, consulte las condiciones y requisitos vigentes para la exención del Impuesto Sobre la Renta (ISR) conforme a la Regla de los 3 Años."
+        pdf.multi_cell(180, 3, aviso_isr.encode('latin-1', 'ignore').decode('latin-1'), align='C')
     
+    # PIE DE PÁGINA 1 CON FIRMA ARCANO
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
     pdf.set_text_color(150, 150, 150)
-    pdf.cell(180, 10, f"{name_inmo} | Página 1 de 2", align='C')
+    pdf.cell(90, 10, f"{name_inmo} | Página 1 de 2", align='L')
+    pdf.set_font("Helvetica", 'B', 7)
+    pdf.set_text_color(200, 200, 200)
+    pdf.cell(90, 10, "By Arcano AI Studio", align='R')
 
     # PAGINA 2
     pdf.add_page()
@@ -308,10 +316,14 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_xy(15, 250)
     pdf.cell(180, 6, f"Línea Directa / WhatsApp: {num_cont}", align='C', ln=1)
 
+    # PIE DE PÁGINA 2 CON FIRMA ARCANO
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
     pdf.set_text_color(150, 150, 150)
-    pdf.cell(180, 10, f"{name_inmo} | Página 2 de 2", align='C')
+    pdf.cell(90, 10, f"{name_inmo} | Página 2 de 2", align='L')
+    pdf.set_font("Helvetica", 'B', 7)
+    pdf.set_text_color(200, 200, 200)
+    pdf.cell(90, 10, "By Arcano AI Studio", align='R')
     
     return bytes(pdf.output())
 
@@ -327,11 +339,11 @@ with col2:
                 genai.configure(api_key=api_key)
                 modelo = genai.GenerativeModel('gemini-2.5-flash')
                 
-                with st.spinner(f'Analizando {tipo_propiedad} y ensamblando materiales...'):
+                with st.spinner(f'Analizando {tipo_propiedad} en {operacion} y ensamblando materiales...'):
                     prompt = f"""
-                    Analiza esta descripción de {tipo_propiedad} y extrae los datos. Devuelve ÚNICAMENTE JSON válido:
+                    Analiza esta descripción de {tipo_propiedad} para {operacion} y extrae los datos. Devuelve ÚNICAMENTE JSON válido:
                     {{
-                        "whatsapp": "Mensaje altamente persuasivo con emojis diseñado para vender este {tipo_propiedad}",
+                        "whatsapp": "Mensaje altamente persuasivo con emojis diseñado para promover esta {tipo_propiedad} en {operacion}",
                         "ubicacion": "Ciudad o colonia corta",
                         "terreno": "Superficie de terreno con m2",
                         "construccion": "Superficie de construcción (Pon 'N/A' si es terreno puro)",
@@ -350,11 +362,11 @@ with col2:
                     res_texto = respuesta.text.replace(marca_codigo + "json", "").replace(marca_codigo, "").strip()
                     datos_json = json.loads(res_texto)
                     
-                    collage_final = crear_collage(foto1, foto2, foto3, foto4, tipo_propiedad, titulo_propiedad, precio_inmueble)
+                    collage_final = crear_collage(foto1, foto2, foto3, foto4, tipo_propiedad, operacion, titulo_propiedad, precio_inmueble)
                     pdf_final_bytes = generar_pdf_estructurado(
                         titulo_propiedad, precio_inmueble, datos_json, 
                         inmobiliaria, asesor, contacto, 
-                        foto1, foto2, foto3, foto4
+                        foto1, foto2, foto3, foto4, operacion
                     )
                     
                     img_byte_arr = io.BytesIO()
@@ -371,7 +383,7 @@ with col2:
             except Exception as e:
                 st.error(f"Error en el motor: {e}")
 
-    # Mostrar Resultados desde la Memoria
+    # Mostrar Resultados
     if st.session_state.resultados:
         res = st.session_state.resultados
         
