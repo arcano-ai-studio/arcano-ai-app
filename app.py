@@ -10,36 +10,43 @@ import urllib.request
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Arcano AI Studio", page_icon="🏢", layout="wide")
 
-# 2. INYECCIÓN DE ESTILOS CORPORATIVOS (CSS)
+# 2. INYECCIÓN DE ESTILOS CORPORATIVOS (PALETA ARCANO AI STUDIO)
 st.markdown("""
 <style>
+    /* Color de fondo principal y botones */
     div.stButton > button:first-child {
-        background-color: #1a2b4c;
+        background-color: #000066; /* Azul Profundo Arcano */
         color: white;
         border-radius: 8px;
-        border: 2px solid #c5a880;
+        border: 2px solid #008f39; /* Verde Red Neuronal Arcano */
         font-weight: bold;
         transition: all 0.3s ease;
     }
     div.stButton > button:first-child:hover {
-        background-color: #c5a880;
-        color: #1a2b4c;
-        border-color: #1a2b4c;
+        background-color: #008f39; /* Verde Red Neuronal Arcano */
+        color: white;
+        border-color: #000066; /* Azul Profundo Arcano */
     }
+    /* Estilos de encabezados */
     h1, h2, h3 {
-        color: #1a2b4c;
+        color: #000066; /* Azul Profundo Arcano */
         font-family: 'Helvetica Neue', sans-serif;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. ENCABEZADO Y LOGOTIPO
+# 3. ENCABEZADO Y LOGOTIPO OFICIAL
 col_logo, col_titulo = st.columns([1, 6])
 with col_logo:
-    st.markdown("<h1 style='text-align: center; font-size: 3.5rem;'>🌌</h1>", unsafe_allow_html=True)
+    # El sistema buscará tu archivo logo.png, si no lo encuentra por unos segundos, pondrá un ícono temporal
+    try:
+        st.image("logo.png", use_container_width=True)
+    except:
+        st.markdown("<h1 style='text-align: center; font-size: 3.5rem;'>🏢</h1>", unsafe_allow_html=True)
+
 with col_titulo:
-    st.markdown("<h1 style='margin-bottom: 0px;'>Arcano AI Studio</h1>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color: #c5a880; margin-top: 0px;'>Central de Inteligencia Inmobiliaria - Versión Pro</h4>", unsafe_allow_html=True)
+    st.markdown("<h1 style='margin-bottom: 0px; color: #000066;'>ARCANO AI Studio</h1>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #ff6600; margin-top: 0px;'>Soluciones Inmobiliarias de Precisión</h4>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -66,15 +73,16 @@ with col1:
     precio_inmueble = st.text_input("Precio de Venta (Ej: $2,700,000 MXN):")
     descripcion = st.text_area("Pega aquí todos los detalles (Metros, distribución, esquema legal, etc.):", height=120)
     
-    st.write("### 📸 4. Carga de Fotografías (Optimizado para Celular)")
-    st.info("💡 En celular: Toca el botón para abrir tu galería de imágenes o la cámara.")
-    foto1 = st.file_uploader("🖼️ 1. Foto Principal (Fachada)", type=['jpg', 'jpeg', 'png'])
-    foto2 = st.file_uploader("🛋️ 2. Foto de Interiores o Estancia", type=['jpg', 'jpeg', 'png'])
-    foto3 = st.file_uploader("🛏️ 3. Foto de Privados o Recámaras", type=['jpg', 'jpeg', 'png'])
-    foto4 = st.file_uploader("✨ 4. Foto de Amenidades o Detalles", type=['jpg', 'jpeg', 'png'])
+    st.write("### 📸 4. Carga de Fotografías")
+    st.info("💡 En celular: Si abre 'Archivos', toca el menú de las 3 rayitas para ir a tu Galería.")
+    
+    foto1 = st.file_uploader("🖼️ 1. Foto Principal (Fachada)", type=['jpg', 'jpeg', 'png'], key="foto_1")
+    foto2 = st.file_uploader("🛋️ 2. Foto de Interiores", type=['jpg', 'jpeg', 'png'], key="foto_2")
+    foto3 = st.file_uploader("🛏️ 3. Foto de Privados", type=['jpg', 'jpeg', 'png'], key="foto_3")
+    foto4 = st.file_uploader("✨ 4. Foto de Amenidades", type=['jpg', 'jpeg', 'png'], key="foto_4")
 
 def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
-    lienzo = Image.new('RGB', (1080, 1080), color=(26, 43, 76)) 
+    lienzo = Image.new('RGB', (1080, 1080), color=(0, 0, 102)) # Fondo Azul Arcano
     def preparar(f): return Image.open(f).resize((540, 540))
     lienzo.paste(preparar(img1), (0, 0))
     lienzo.paste(preparar(img2), (540, 0))
@@ -84,8 +92,9 @@ def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
     capa_dibujo = Image.new('RGBA', (1080, 1080), (255, 255, 255, 0))
     dibujo = ImageDraw.Draw(capa_dibujo)
     
-    dibujo.rectangle([0, 380, 1080, 700], fill=(26, 43, 76, 230)) 
-    dibujo.rectangle([0, 980, 1080, 1080], fill=(197, 168, 128, 255)) 
+    # Cinturones con los nuevos colores
+    dibujo.rectangle([0, 380, 1080, 700], fill=(0, 0, 102, 230)) # Azul oscuro semitransparente
+    dibujo.rectangle([0, 980, 1080, 1080], fill=(255, 102, 0, 255)) # Naranja Arcano Inferior
     
     font_path = "Roboto-Bold.ttf"
     if not os.path.exists(font_path):
@@ -100,9 +109,9 @@ def crear_collage(img1, img2, img3, img4, tipo, titulo, precio):
         fuente_mediana = ImageFont.load_default()
         
     texto_oferta = f"¡{tipo.upper()} EN VENTA!"
-    dibujo.text((540, 450), texto_oferta, fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
-    titulo_corto = titulo if len(titulo) < 38 else titulo[:35] + "..."
-    dibujo.text((540, 540), titulo_corto.upper(), fill=(197, 168, 128, 255), font=fuente_mediana, anchor="mm")
+    dibujo.text((540, 450), texto_oferta, fill=(0, 143, 57, 255), font=fuente_gigante, anchor="mm") # Letras Verde Arcano
+    titulo_corto = str(titulo) if len(str(titulo)) < 38 else str(titulo)[:35] + "..."
+    dibujo.text((540, 540), titulo_corto.upper(), fill=(255, 255, 255, 255), font=fuente_mediana, anchor="mm")
     dibujo.text((540, 620), str(precio), fill=(255, 255, 255, 255), font=fuente_gigante, anchor="mm")
     
     lienzo = Image.alpha_composite(lienzo.convert('RGBA'), capa_dibujo)
@@ -201,8 +210,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         pdf.cell(55, 7, etiqueta, fill=True, border='B')
         pdf.set_font("Helvetica", '', 9)
         pdf.set_text_color(45, 55, 72)
-        
-        # BLINDAJE: Forzar a string antes de limpiar
         val_str = str(valor)
         val_clean = val_str.encode('latin-1', 'ignore').decode('latin-1')[:85]
         pdf.cell(125, 7, val_clean, fill=True, border='B', ln=1)
@@ -246,6 +253,13 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         pdf.set_x(110)
         item_str = str(item)
         pdf.multi_cell(85, 4.5, f"- {item_str.encode('latin-1', 'ignore').decode('latin-1')}")
+    
+    # Inclusión obligatoria del Aviso Legal de ISR (Regla de los 3 Años)
+    pdf.set_y(268)
+    pdf.set_font("Helvetica", 'I', 7)
+    pdf.set_text_color(130, 130, 130)
+    aviso_isr = "* Aviso Legal: Tratándose de enajenación de Casa Habitación, consulte las condiciones y requisitos vigentes para la exención del Impuesto Sobre la Renta (ISR) conforme a la Regla de los 3 Años."
+    pdf.multi_cell(180, 3, aviso_isr.encode('latin-1', 'ignore').decode('latin-1'), align='C')
     
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
