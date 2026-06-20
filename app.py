@@ -7,7 +7,7 @@ import json
 import os
 import urllib.request
 
-# 1. CONFIGURACIÓN DE PÁGINA (FAVICON ACTUALIZADO)
+# 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Arcano AI Studio", page_icon="logo.png", layout="wide")
 
 # 2. INYECCIÓN DE ESTILOS CORPORATIVOS
@@ -33,8 +33,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. ENCABEZADO Y LOGOTIPO OFICIAL (ARMONÍA VISUAL MEJORADA)
-# Cambiamos la proporción de las columnas de [1, 6] a [1.5, 4] para darle más respiro al logo
+# 3. ENCABEZADO Y LOGOTIPO OFICIAL
 col_logo, col_titulo = st.columns([1.5, 4])
 with col_logo:
     try:
@@ -43,7 +42,6 @@ with col_logo:
         st.markdown("<h1 style='text-align: center; font-size: 3.5rem;'>🏢</h1>", unsafe_allow_html=True)
 
 with col_titulo:
-    # Agregamos un margen superior para alinear los textos con el centro del logotipo
     st.markdown("<div style='margin-top: 25px;'></div>", unsafe_allow_html=True)
     st.markdown("<h1 style='margin-bottom: 0px; color: #000066;'>ARCANO AI Studio</h1>", unsafe_allow_html=True)
     st.markdown("<h4 style='color: #ff6600; margin-top: 0px;'>Soluciones Inmobiliarias de Precisión</h4>", unsafe_allow_html=True)
@@ -66,7 +64,8 @@ with col1:
     with col_operacion:
         operacion = st.radio("Modalidad:", ["Venta", "Renta"])
     
-    st.write("### 👤 2. Datos del Asesor (Marca Blanca)")
+    # CORRECCIÓN FRONTEND 1: Nombre de sección limpio
+    st.write("### 👤 2. Datos del Asesor")
     inmobiliaria = st.text_input("Nombre de la Inmobiliaria:", value="Arconte Bienes Raíces")
     asesor = st.text_input("Tu Nombre Completo:", value="Javier Enciso")
     contacto = st.text_input("Tu WhatsApp para que te contacten (Ej: 7711234567):")
@@ -79,10 +78,22 @@ with col1:
     st.write("### 📸 4. Carga de Fotografías")
     st.info("💡 En celular: Si abre 'Archivos', toca el menú de las 3 rayitas para ir a tu Galería.")
     
-    foto1 = st.file_uploader("🖼️ 1. Foto Principal (Fachada)", type=['jpg', 'jpeg', 'png'], key="foto_1")
-    foto2 = st.file_uploader("🛋️ 2. Foto de Interiores", type=['jpg', 'jpeg', 'png'], key="foto_2")
-    foto3 = st.file_uploader("🛏️ 3. Foto de Privados", type=['jpg', 'jpeg', 'png'], key="foto_3")
-    foto4 = st.file_uploader("✨ 4. Foto de Amenidades", type=['jpg', 'jpeg', 'png'], key="foto_4")
+    # CORRECCIÓN FRONTEND 2: Etiquetas de fotos dinámicas según tipo de inmueble
+    if tipo_propiedad == "Casa Habitación":
+        lbl_foto1 = "🖼️ 1. Foto Principal (Fachada)"
+        lbl_foto2 = "🛋️ 2. Foto de Interiores"
+        lbl_foto3 = "🛏️ 3. Foto de Privados"
+        lbl_foto4 = "✨ 4. Foto de Amenidades"
+    else:
+        lbl_foto1 = "🗺️ 1. Foto Principal (Vista General)"
+        lbl_foto2 = "📍 2. Foto del Terreno (Ángulo diferente)"
+        lbl_foto3 = "🛣️ 3. Foto de Entorno / Accesos"
+        lbl_foto4 = "✨ 4. Foto de Colindancias / Detalles"
+
+    foto1 = st.file_uploader(lbl_foto1, type=['jpg', 'jpeg', 'png'], key="foto_1")
+    foto2 = st.file_uploader(lbl_foto2, type=['jpg', 'jpeg', 'png'], key="foto_2")
+    foto3 = st.file_uploader(lbl_foto3, type=['jpg', 'jpeg', 'png'], key="foto_3")
+    foto4 = st.file_uploader(lbl_foto4, type=['jpg', 'jpeg', 'png'], key="foto_4")
 
 def crear_collage(img1, img2, img3, img4, tipo, modalidad, titulo, precio):
     lienzo = Image.new('RGB', (1080, 1080), color=(0, 0, 102)) 
@@ -131,7 +142,7 @@ def procesar_imagen(file_obj):
     temp.seek(0)
     return temp
 
-def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_cont, f1, f2, f3, f4, modalidad):
+def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_cont, f1, f2, f3, f4, modalidad, tipo_inmueble):
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)
     
@@ -220,9 +231,9 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     fila_tabla("Ubicación", datos.get('ubicacion', 'No especificado'), False)
     fila_tabla("Superficie de Terreno", datos.get('terreno', 'No especificado'), True)
     fila_tabla("Superficie de Construcción", datos.get('construccion', 'No aplica'), False)
-    fila_tabla("Niveles", datos.get('niveles', 'No especificado'), True)
+    fila_tabla("Niveles", datos.get('niveles', 'No aplica'), True)
     
-    texto_legal = "Propiedad privada, lista para escriturar." if modalidad == "Venta" else "Disponible mediante contrato de arrendamiento."
+    texto_legal = "Propiedad lista para estructuración jurídica." if modalidad == "Venta" else "Disponible mediante contrato de arrendamiento."
     fila_tabla("Esquema / Disponibilidad", texto_legal, False)
     
     y = titulo_seccion("Descripción General", y + 8)
@@ -233,11 +244,16 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     desc_clean = desc_str.encode('latin-1', 'ignore').decode('latin-1')
     pdf.multi_cell(180, 5.5, desc_clean)
     
-    y = titulo_seccion("Distribución / Amenidades", pdf.get_y() + 8)
+    # Nombres de distribución dinámicos
+    titulo_dist = "Distribución / Amenidades" if tipo_inmueble == "Casa Habitación" else "Características del Terreno"
+    y = titulo_seccion(titulo_dist, pdf.get_y() + 8)
     pdf.set_xy(15, y)
     pdf.set_font("Helvetica", 'B', 10)
     pdf.set_text_color(26, 43, 76)
-    pdf.cell(85, 6, "Zonas Principales", ln=1)
+    
+    col_1_title = "Zonas Principales" if tipo_inmueble == "Casa Habitación" else "Ventajas Principales"
+    pdf.cell(85, 6, col_1_title, ln=1)
+    
     pdf.set_font("Helvetica", '', 9)
     pdf.set_text_color(70, 85, 104)
     y_col1 = pdf.get_y()
@@ -249,7 +265,9 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_xy(110, y)
     pdf.set_font("Helvetica", 'B', 10)
     pdf.set_text_color(26, 43, 76)
-    pdf.cell(85, 6, "Extras / Privados", ln=1)
+    col_2_title = "Extras / Privados" if tipo_inmueble == "Casa Habitación" else "Entorno / Colindancias"
+    pdf.cell(85, 6, col_2_title, ln=1)
+    
     pdf.set_font("Helvetica", '', 9)
     pdf.set_text_color(70, 85, 104)
     pdf.set_y(y_col1)
@@ -258,20 +276,20 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         item_str = str(item)
         pdf.multi_cell(85, 4.5, f"- {item_str.encode('latin-1', 'ignore').decode('latin-1')}")
     
-    if modalidad == "Venta":
-        pdf.set_y(268)
-        pdf.set_font("Helvetica", 'I', 7)
-        pdf.set_text_color(130, 130, 130)
-        aviso_isr = "* Aviso Legal: Tratándose de enajenación de Casa Habitación, consulte las condiciones y requisitos vigentes para la exención del Impuesto Sobre la Renta (ISR) conforme a la Regla de los 3 Años."
-        pdf.multi_cell(180, 3, aviso_isr.encode('latin-1', 'ignore').decode('latin-1'), align='C')
+    # CORRECCIÓN PDF 2: Aviso legal universal y neutro
+    pdf.set_y(268)
+    pdf.set_font("Helvetica", 'I', 7.5)
+    pdf.set_text_color(130, 130, 130)
+    aviso_legal = "* Aviso Legal: La información técnica contenida en este documento es de carácter informativo. Solicite a su asesor la revisión completa de la documentación jurídica pertinente antes de formalizar el cierre u operación."
+    pdf.multi_cell(180, 3.5, aviso_legal.encode('latin-1', 'ignore').decode('latin-1'), align='C')
     
-    # PIE DE PÁGINA 1 CON FIRMA ARCANO
+    # CORRECCIÓN PDF 1: Marca Arcano AI Studio más visible y gruesa
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
     pdf.set_text_color(150, 150, 150)
     pdf.cell(90, 10, f"{name_inmo} | Página 1 de 2", align='L')
-    pdf.set_font("Helvetica", 'B', 7)
-    pdf.set_text_color(200, 200, 200)
+    pdf.set_font("Helvetica", 'B', 9) # Tamaño aumentado a 9
+    pdf.set_text_color(110, 120, 140) # Tono azulado más oscuro y visible
     pdf.cell(90, 10, "By Arcano AI Studio", align='R')
 
     # PAGINA 2
@@ -282,6 +300,11 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_text_color(100, 100, 100)
     pdf.cell(180, 5, "Este expediente vincula automáticamente las fotografías validadas dentro del catálogo maestro.", ln=1)
     
+    lbl_img1 = "Vista Principal" if tipo_inmueble == "Casa Habitación" else "Vista General"
+    lbl_img2 = "Interiores" if tipo_inmueble == "Casa Habitación" else "Topografía / Ángulo"
+    lbl_img3 = "Área Privada" if tipo_inmueble == "Casa Habitación" else "Accesos / Entorno"
+    lbl_img4 = "Detalles Adicionales" if tipo_inmueble == "Casa Habitación" else "Colindancias"
+
     y_img = 40
     try:
         if f1: pdf.image(procesar_imagen(f1), x=20, y=y_img, w=80, h=60)
@@ -289,17 +312,17 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         pdf.set_font("Helvetica", 'B', 9)
         pdf.set_text_color(26, 43, 76)
         pdf.set_xy(20, y_img + 62)
-        pdf.cell(80, 5, "Vista Principal", align='C')
+        pdf.cell(80, 5, lbl_img1, align='C')
         pdf.set_xy(110, y_img + 62)
-        pdf.cell(80, 5, "Interiores / Terreno", align='C')
+        pdf.cell(80, 5, lbl_img2, align='C')
         
         y_img = 115
         if f3: pdf.image(procesar_imagen(f3), x=20, y=y_img, w=80, h=60)
         if f4: pdf.image(procesar_imagen(f4), x=110, y=y_img, w=80, h=60)
         pdf.set_xy(20, y_img + 62)
-        pdf.cell(80, 5, "Área Privada", align='C')
+        pdf.cell(80, 5, lbl_img3, align='C')
         pdf.set_xy(110, y_img + 62)
-        pdf.cell(80, 5, "Detalles Adicionales", align='C')
+        pdf.cell(80, 5, lbl_img4, align='C')
     except Exception as e:
         pass
         
@@ -316,13 +339,13 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.set_xy(15, 250)
     pdf.cell(180, 6, f"Línea Directa / WhatsApp: {num_cont}", align='C', ln=1)
 
-    # PIE DE PÁGINA 2 CON FIRMA ARCANO
+    # Marca Arcano AI Studio más visible y gruesa también en hoja 2
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
     pdf.set_text_color(150, 150, 150)
     pdf.cell(90, 10, f"{name_inmo} | Página 2 de 2", align='L')
-    pdf.set_font("Helvetica", 'B', 7)
-    pdf.set_text_color(200, 200, 200)
+    pdf.set_font("Helvetica", 'B', 9) 
+    pdf.set_text_color(110, 120, 140) 
     pdf.cell(90, 10, "By Arcano AI Studio", align='R')
     
     return bytes(pdf.output())
@@ -366,7 +389,7 @@ with col2:
                     pdf_final_bytes = generar_pdf_estructurado(
                         titulo_propiedad, precio_inmueble, datos_json, 
                         inmobiliaria, asesor, contacto, 
-                        foto1, foto2, foto3, foto4, operacion
+                        foto1, foto2, foto3, foto4, operacion, tipo_propiedad
                     )
                     
                     img_byte_arr = io.BytesIO()
