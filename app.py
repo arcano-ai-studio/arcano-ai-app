@@ -64,7 +64,6 @@ with col1:
     with col_operacion:
         operacion = st.radio("Modalidad:", ["Venta", "Renta"])
     
-    # CORRECCIÓN FRONTEND 1: Nombre de sección limpio
     st.write("### 👤 2. Datos del Asesor")
     inmobiliaria = st.text_input("Nombre de la Inmobiliaria:", value="Arconte Bienes Raíces")
     asesor = st.text_input("Tu Nombre Completo:", value="Javier Enciso")
@@ -78,7 +77,6 @@ with col1:
     st.write("### 📸 4. Carga de Fotografías")
     st.info("💡 En celular: Si abre 'Archivos', toca el menú de las 3 rayitas para ir a tu Galería.")
     
-    # CORRECCIÓN FRONTEND 2: Etiquetas de fotos dinámicas según tipo de inmueble
     if tipo_propiedad == "Casa Habitación":
         lbl_foto1 = "🖼️ 1. Foto Principal (Fachada)"
         lbl_foto2 = "🛋️ 2. Foto de Interiores"
@@ -244,7 +242,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     desc_clean = desc_str.encode('latin-1', 'ignore').decode('latin-1')
     pdf.multi_cell(180, 5.5, desc_clean)
     
-    # Nombres de distribución dinámicos
     titulo_dist = "Distribución / Amenidades" if tipo_inmueble == "Casa Habitación" else "Características del Terreno"
     y = titulo_seccion(titulo_dist, pdf.get_y() + 8)
     pdf.set_xy(15, y)
@@ -276,20 +273,18 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
         item_str = str(item)
         pdf.multi_cell(85, 4.5, f"- {item_str.encode('latin-1', 'ignore').decode('latin-1')}")
     
-    # CORRECCIÓN PDF 2: Aviso legal universal y neutro
     pdf.set_y(268)
     pdf.set_font("Helvetica", 'I', 7.5)
     pdf.set_text_color(130, 130, 130)
     aviso_legal = "* Aviso Legal: La información técnica contenida en este documento es de carácter informativo. Solicite a su asesor la revisión completa de la documentación jurídica pertinente antes de formalizar el cierre u operación."
     pdf.multi_cell(180, 3.5, aviso_legal.encode('latin-1', 'ignore').decode('latin-1'), align='C')
     
-    # CORRECCIÓN PDF 1: Marca Arcano AI Studio más visible y gruesa
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
     pdf.set_text_color(150, 150, 150)
     pdf.cell(90, 10, f"{name_inmo} | Página 1 de 2", align='L')
-    pdf.set_font("Helvetica", 'B', 9) # Tamaño aumentado a 9
-    pdf.set_text_color(110, 120, 140) # Tono azulado más oscuro y visible
+    pdf.set_font("Helvetica", 'B', 9) 
+    pdf.set_text_color(110, 120, 140) 
     pdf.cell(90, 10, "By Arcano AI Studio", align='R')
 
     # PAGINA 2
@@ -326,20 +321,26 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     except Exception as e:
         pass
         
+    # --- CAJA CTA CON TEXTO DEL ASESOR EN NARANJA ---
     pdf.set_fill_color(26, 43, 76)
     pdf.rect(15, 230, 180, 30, 'F')
+    
     pdf.set_font("Helvetica", 'B', 12)
-    pdf.set_text_color(197, 168, 128)
-    pdf.set_xy(15, 235)
+    pdf.set_text_color(197, 168, 128) # Dorado
+    pdf.set_xy(15, 233)
     pdf.cell(180, 8, "¿LISTO PARA RECIBIR MÁS INFORMACIÓN?", align='C', ln=1)
+    
     pdf.set_font("Helvetica", '', 10)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_xy(15, 245)
-    pdf.cell(180, 6, f"Póngase en contacto inmediato con el asesor {name_asesor} para agendar su cita.", align='C', ln=1)
-    pdf.set_xy(15, 250)
-    pdf.cell(180, 6, f"Línea Directa / WhatsApp: {num_cont}", align='C', ln=1)
+    pdf.set_text_color(255, 255, 255) # Blanco
+    pdf.set_xy(15, 242)
+    pdf.cell(180, 6, "Póngase en contacto directo con su asesor para agendar una cita:", align='C', ln=1)
+    
+    pdf.set_font("Helvetica", 'B', 12)
+    pdf.set_text_color(255, 102, 0) # Naranja Arcano Vibrante
+    pdf.set_xy(15, 249)
+    pdf.cell(180, 6, f"{name_asesor} | WhatsApp: {num_cont}", align='C', ln=1)
+    # ------------------------------------------------
 
-    # Marca Arcano AI Studio más visible y gruesa también en hoja 2
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
     pdf.set_text_color(150, 150, 150)
@@ -406,7 +407,6 @@ with col2:
             except Exception as e:
                 st.error(f"Error en el motor: {e}")
 
-    # Mostrar Resultados
     if st.session_state.resultados:
         res = st.session_state.resultados
         
