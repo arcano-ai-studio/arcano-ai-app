@@ -70,9 +70,10 @@ with col1:
     contacto = st.text_input("Tu WhatsApp para que te contacten (Ej: 7711234567):")
     
     st.write("### 📝 3. Detalles de la Propiedad")
-    titulo_propiedad = st.text_input("Título Comercial (Ej: Casa Moderna en Forjadores):")
-    precio_inmueble = st.text_input(f"Precio de {operacion} (Ej: $15,000 MXN mensuales):")
-    descripcion = st.text_area("Pega aquí todos los detalles (Metros, distribución, amenidades, etc.):", height=120)
+    # Agregamos "keys" a estos campos para que el sistema sepa vaciarlos
+    titulo_propiedad = st.text_input("Título Comercial (Ej: Casa Moderna en Forjadores):", key="titulo_input")
+    precio_inmueble = st.text_input(f"Precio de {operacion} (Ej: $15,000 MXN mensuales):", key="precio_input")
+    descripcion = st.text_area("Pega aquí todos los detalles (Metros, distribución, amenidades, etc.):", height=120, key="desc_input")
     
     st.write("### 📸 4. Carga de Fotografías")
     st.info("💡 En celular: Si abre 'Archivos', toca el menú de las 3 rayitas para ir a tu Galería.")
@@ -321,7 +322,6 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     except Exception as e:
         pass
         
-    # --- CAJA CTA CON TEXTO DEL ASESOR EN NARANJA ---
     pdf.set_fill_color(26, 43, 76)
     pdf.rect(15, 230, 180, 30, 'F')
     
@@ -336,10 +336,9 @@ def generar_pdf_estructurado(titulo, precio, datos, name_inmo, name_asesor, num_
     pdf.cell(180, 6, "Póngase en contacto directo con su asesor para agendar una cita:", align='C', ln=1)
     
     pdf.set_font("Helvetica", 'B', 12)
-    pdf.set_text_color(255, 102, 0) # Naranja Arcano Vibrante
+    pdf.set_text_color(255, 102, 0) # Naranja Arcano
     pdf.set_xy(15, 249)
     pdf.cell(180, 6, f"{name_asesor} | WhatsApp: {num_cont}", align='C', ln=1)
-    # ------------------------------------------------
 
     pdf.set_xy(15, 280)
     pdf.set_font("Helvetica", 'I', 8)
@@ -407,6 +406,7 @@ with col2:
             except Exception as e:
                 st.error(f"Error en el motor: {e}")
 
+    # Mostrar Resultados
     if st.session_state.resultados:
         res = st.session_state.resultados
         
@@ -431,9 +431,16 @@ with col2:
             )
             
         st.markdown("<br>", unsafe_allow_html=True)
+        # EL NUEVO BOTÓN CON LÓGICA DE LIMPIEZA PARCIAL
         if st.button("🔄 Crear Nueva Ficha Inmobiliaria", use_container_width=True):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+            st.session_state.resultados = None
+            
+            # Limpiar Específicamente las cajas de texto de la propiedad y las fotos
+            claves_a_limpiar = ["titulo_input", "precio_input", "desc_input", "foto_1", "foto_2", "foto_3", "foto_4"]
+            for clave in claves_a_limpiar:
+                if clave in st.session_state:
+                    del st.session_state[clave]
+            
             st.rerun()
         
         st.markdown("#### 💬 Copy WhatsApp Listo:")
